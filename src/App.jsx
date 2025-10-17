@@ -1,20 +1,20 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { Container, Navbar, Nav } from "react-bootstrap";
-// import Home from "./pages/Home";
-// import About from "./pages/About";
+import React from "react";
+import Navbar from "./components/Navbar";
+import CarouselHome from "./components/CarouselHome";
+import EventGrid from "./components/EventGrid";
+import FeaturedGrid from "./components/FeaturedGrid";
+import Footer from "./components/Footer";
 
 function App() {
-  return (
-    <BrowserRouter>
-      {/* Conteúdo das páginas */}
-      <Container className="mt-4">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/sobre" element={<About />} />
-        </Routes>
-      </Container>
-    </BrowserRouter>
-  );
+    return (
+        <>
+            <Navbar />
+            <CarouselHome />
+            <EventGrid />
+            <FeaturedGrid />
+            <Footer />
+        </>
+    );
 }
 
 export default App;
