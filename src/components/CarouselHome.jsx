@@ -25,7 +25,7 @@ export default function CarouselHome() {
     return (
         <div style={{ margin: "20px 0" }}>
             {/* Faixa acima do carrossel */}
-            <div style={{ backgroundColor: "#6b7b44", height: "50px", marginBottom: "20px" }}></div>
+            {/* <div style={{ backgroundColor: "#6b7b44", height: "50px", marginBottom: "20px" }}></div> */}
 
             {/* Carrossel centralizado com 80% de largura */}
             <div style={{ width: "80%", margin: "0 auto" }}>
