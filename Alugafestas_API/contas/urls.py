@@ -1,8 +1,11 @@
-
-from django.urls import path, include
-from contas.api.views import AdminLoginVIew, AdminCreateView
+from django.urls import path
+from rest_framework_simplejwt.views import TokenVerifyView
+from contas.api.views import AdminLoginView, AdminCreateView, AdminTokenRefreshView, AdminPerfilView
 
 urlpatterns = [
-    path("admin/login", AdminLoginVIew.as_view(), name="login-admin"),
-    path("admin/create", AdminCreateView.as_view(), name="create-admin"),
-] 
+    path('admin/login/', AdminLoginView.as_view(), name='admin-login'),
+    path('admin/create/', AdminCreateView.as_view(), name='admin-create'),
+    path('admin/token/refresh/', AdminTokenRefreshView.as_view(), name='token-refresh'),
+    path('admin/token/verify/', TokenVerifyView.as_view(), name='token-verify'),
+     path('admin/perfil/', AdminPerfilView.as_view(), name='admin-perfil'),
+]
