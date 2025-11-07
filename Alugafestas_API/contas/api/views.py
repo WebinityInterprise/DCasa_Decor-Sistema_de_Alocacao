@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from contas.api.serializers import AdminLoginSerializer, AdminCreateSerializer, AdminProfileSerializer
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema,OpenApiExample
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.generics import RetrieveUpdateAPIView 
 class AdminLoginView(APIView):
@@ -13,16 +13,25 @@ class AdminLoginView(APIView):
         summary="Login do administrador",
         description="Login usando email e senha. Retorna tokens JWT.",
         request=AdminLoginSerializer,
+        examples=[
+            OpenApiExample(
+            '   Exemplo de login',
+            value={
+                "email": "gersonfagundes2016@gmail.com",
+                "password": "1e2e3e4e"
+                }
+         )
+        ],
         responses={
-            200: {
-                "type": "object",
-                "properties": {
-                    "refresh": {"type": "string"},
-                    "access": {"type": "string"},
-                    "email": {"type": "string"},
-                    "user_id": {"type": "integer"},
-                    "first_name": {"type": "string"},
-                    "last_name": {"type": "string"}
+        200: {
+            "type": "object",
+            "properties": {
+                "refresh": {"type": "string"},
+                "access": {"type": "string"},
+                "email": {"type": "string"},
+                "user_id": {"type": "integer"},
+                "first_name": {"type": "string"},
+                "last_name": {"type": "string"}
                 }
             }
         }

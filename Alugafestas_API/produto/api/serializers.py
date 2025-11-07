@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from produto.models import Categoria, Produto, Kit
-
+from django.db import transaction
 class CategoriaSerializer(serializers.ModelSerializer):
      class Meta:
         model = Categoria
@@ -47,6 +47,27 @@ class KitSerializer(serializers.ModelSerializer):
             'produtos',
             'produto_ids'
         ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+        produtos = validated_data.pop('produtos', [])
+        kit = Kit.objects.create(**validated_data)
+        kit.produtos.set(produtos)
+        return kit
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        produtos = validated_data.pop('produtos', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if produtos is not None:
+            instance.produtos.set(produtos)
+
+        return instance
         
         
         
@@ -56,24 +77,18 @@ class CategoriaBannerSerializer(serializers.ModelSerializer):
         model = Categoria
         fields = ['id', 'nome', 'descricao', 'imagem']
 
-class ProdutoBannerSerializer(serializers.ModelSerializer):
+class ProdutoDestaqueSerializer(serializers.ModelSerializer):
     categoria = CategoriaBannerSerializer(read_only=True)
     preco_formatado = serializers.ReadOnlyField()
-    
+
     class Meta:
         model = Produto
         fields = [
-            'id', 'nome', 'descricao', 'preco', 'preco_formatado', 
-            'imagem', 'destaque', 'categoria'
-        ]
-
-class KitBannerSerializer(serializers.ModelSerializer):
-    produtos = ProdutoBannerSerializer(many=True, read_only=True)
-    preco_formatado = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Kit
-        fields = [
-            'id', 'nome', 'descricao', 'preco', 'preco_formatado',
-            'imagem', 'categoria', 'produtos'
+            'id',
+            'nome',
+            'descricao',
+            'preco',
+            'preco_formatado',
+            'imagem',
+            'categoria'
         ]

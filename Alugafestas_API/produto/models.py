@@ -5,7 +5,6 @@ class Categoria(models.Model):
     descricao = models.TextField(blank=True, null=True)
     imagem = models.ImageField(upload_to='categorias/', blank=True, null=True)
     destaque = models.BooleanField(default=False, help_text="Destacar esta categoria")
-    banner = models.BooleanField(default=False, help_text="Exibir no banner principal")  # NOVO CAMPO
 
     def __str__(self):
         return self.nome
@@ -17,7 +16,6 @@ class Produto(models.Model):
     preco = models.DecimalField(max_digits=10, decimal_places=2)
     imagem = models.ImageField(upload_to='produtos/', blank=True, null=True)
     destaque = models.BooleanField(default=False, help_text="Marque como destaque para aparecer na seção de destaques.")
-    banner = models.BooleanField(default=False, help_text="Exibir no banner principal")  # NOVO CAMPO
     disponivel = models.BooleanField(default=True)
     quantidade = models.PositiveIntegerField(default=0)
 
@@ -35,7 +33,6 @@ class Kit(models.Model):
     imagem = models.ImageField(upload_to='kits/', blank=True, null=True)
     produtos = models.ManyToManyField(Produto, related_name='kits')
     destaque = models.BooleanField(default=False)
-    banner = models.BooleanField(default=False, help_text="Exibir no banner principal")  # NOVO CAMPO
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, blank=True)
     
     def __str__(self):
