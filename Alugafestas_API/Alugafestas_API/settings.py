@@ -161,3 +161,5 @@ EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='990506002@smtp-brevo.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='OUT3bq1zcCJG7xQ9')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='990506002@smtp-brevo.com')
+
+WHATSAPP_NUMERO = config('WHATSAPP_NUMERO')

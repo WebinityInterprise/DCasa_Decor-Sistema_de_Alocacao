@@ -39,7 +39,7 @@ class Pedido(models.Model):
         ("CONCLUIDO", "Concluído"),
     ]
 
-    token = models.CharField(max_length=32, unique=True, default=uuid.uuid4().hex)
+    token = models.CharField(max_length=32, unique=True, default=uuid.uuid4)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="pedidos")
     criado_em = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS, default="PENDENTE")
