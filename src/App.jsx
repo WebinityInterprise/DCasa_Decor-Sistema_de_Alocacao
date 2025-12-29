@@ -1,31 +1,60 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
+
+// ---------- CLIENTE ----------
 import Home from "./pages/Home";
 import KitDetalhes from "./pages/KitDetalhes";
 import Carrinho from "./pages/Carrinho";
-import Eventos from "./pages/Eventos";
+import EventosCliente from "./pages/Eventos";
 import Kits from "./pages/Kits";
+import Pesquisa from "./pages/Pesquisa";
+import MeusPedidos from "./pages/MeusPedidos";
+
+// ---------- ADMIN ----------
+import Login from "./pages/Login/Login";
+import Produtos from "./pages/Dashboard/Produtos";
+import EventosAdmin from "./pages/Dashboard/Eventos";
+import Status from "./pages/Dashboard/Status";
 
 function App() {
-    return (
-        <Router>
-            <ScrollToTop /> {/* 👈 Garante que a tela comece do topo a cada mudança de rota */}
-            <Navbar />
+  return (
+    <Router>
+      <ScrollToTop />
 
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/KitDetalhes" element={<KitDetalhes />} />
-                <Route path="/Carrinho" element={<Carrinho />} />
-                <Route path="/Eventos" element={<Eventos />} />
-                <Route path="/Kits" element={<Kits />} />
-            </Routes>
+      <Routes>
 
-            <Footer />
-        </Router>
-    );
+        {/* ================= CLIENTE ================= */}
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <Home />
+              <Footer />
+            </>
+          }
+        />
+
+        <Route path="/kit/:id" element={<><Navbar /><KitDetalhes /><Footer /></>} />
+        <Route path="/carrinho" element={<><Navbar /><Carrinho /><Footer /></>} />
+        <Route path="/eventos" element={<><Navbar /><EventosCliente /><Footer /></>} />
+        <Route path="/kits" element={<><Navbar /><Kits /><Footer /></>} />
+        <Route path="/pesquisa" element={<><Navbar /><Pesquisa /><Footer /></>} />
+        <Route path="/meus-pedidos" element={<><Navbar /><MeusPedidos /><Footer /></>} />
+
+        {/* ================= ADMIN ================= */}
+        <Route path="/admin" element={<Login />} />
+        <Route path="/admin/produtos" element={<Produtos />} />
+        <Route path="/admin/eventos" element={<EventosAdmin />} />
+        <Route path="/admin/status" element={<Status />} />
+
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

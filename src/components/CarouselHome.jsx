@@ -18,24 +18,50 @@ export default function CarouselHome() {
         slidesToScroll: 1,
         autoplay: true,
         autoplaySpeed: 3000,
-        centerMode: true,       // mantém o slide centralizado
-        centerPadding: "100px",  // metade do espaçamento desejado
+        centerMode: true,
+        centerPadding: "100px", // padrão para telas grandes
+        responsive: [
+            {
+                breakpoint: 1024,
+                settings: {
+                    centerPadding: "60px", // levemente maior em tablets
+                }
+            },
+            {
+                breakpoint: 768,
+                settings: {
+                    centerMode: false,    // desativa centralização
+                    slidesToShow: 1,      // só uma imagem visível
+                    centerPadding: "0",   // ocupa toda a largura
+                }
+            },
+            {
+                breakpoint: 480,
+                settings: {
+                    centerMode: false,
+                    slidesToShow: 1,
+                    centerPadding: "0",   // ocupa 100% da largura
+                }
+            }
+        ]
     };
 
     return (
         <div style={{ margin: "20px 0" }}>
-            {/* Faixa acima do carrossel */}
-            {/* <div style={{ backgroundColor: "#6b7b44", height: "50px", marginBottom: "20px" }}></div> */}
-
-            {/* Carrossel centralizado com 80% de largura */}
-            <div style={{ width: "80%", margin: "0 auto" }}>
+            <div style={{ width: "80%", margin: "0 auto" }}> {/* largura padrão */}
                 <Slider {...settings}>
                     {images.map((img, idx) => (
                         <div key={idx} style={{ padding: "0 10px", boxSizing: "border-box" }}>
                             <img
                                 src={img}
                                 alt={`Slide ${idx}`}
-                                style={{ width: "100%", height: "400px", objectFit: "cover", borderRadius: "5px" }}
+                                style={{
+                                    width: "100%",   // ocupa toda largura do slide
+                                    height: "auto",
+                                    maxHeight: "500px",
+                                    borderRadius: "5px",
+                                    objectFit: "cover"
+                                }}
                             />
                         </div>
                     ))}

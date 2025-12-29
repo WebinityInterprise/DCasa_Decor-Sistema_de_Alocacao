@@ -1,0 +1,79 @@
+/* Fundo verde ocupando a tela INTEIRA */
+.login-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #6e7845; /* verde da imagem */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Caixa branca centralizada */
+.login-box {
+  width: 380px;
+  background: #ffffff;
+  padding: 35px 45px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: "Georgia", serif;
+}
+
+/* Título acima dos inputs */
+.login-box h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: black;
+}
+
+/* Texto "Usuário" e "Senha" */
+.label {
+  font-size: 14px;
+  margin-top: 5px;
+  color: black;
+}
+
+/* Inputs brancos */
+.login-box input {
+  height: 32px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  padding: 0 12px;
+  background-color: white;
+  color: black;
+  outline: none;
+  font-size: 14px;
+  box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+}
+
+.login-box input:focus {
+  border-color: #666;
+}
+
+/* Botão */
+.login-box button {
+  width: 150px;
+  align-self: center;
+  margin-top: 15px;
+  background-color: #6e7845;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 15px;
+  font-family: "Georgia", serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-box button:hover {
+  opacity: 0.95;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: 5px;
+  text-align: center;
+}

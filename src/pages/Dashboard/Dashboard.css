@@ -1,0 +1,596 @@
+/* PAGE */
+.dashboard-page {
+  width: 100vw;
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+/* 🔥 FAIXA VERDE MAIS GROSSA */
+.green-bar {
+  height: 55px;      /* antes era 40px */
+  background-color: #6d7a47;
+  width: 100%;
+}
+
+/* 🔥 ÁREA CENTRAL COM MARGEM TOP E BOTTOM DE 80 */
+.dashboard-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 60px 0;
+}
+
+/* LARGURA FIXA PARA A COLUNA "Tipo de Evento" */
+.table-box table td:nth-child(3),
+.table-box table th:nth-child(3) {
+  width: 230px;        /* você pode aumentar/diminuir */
+}
+
+
+/* DIMINUIR LARGURA DA COLUNA "Preço" */
+.table-box table td:nth-child(4),
+.table-box table th:nth-child(4) {
+  width: 90px;     /* Ajuste como quiser (70px, 80px, 100px...) */
+  text-align: left;
+}
+
+/* CENTRALIZAR QUANTIDADE */
+.table-box table td:nth-child(5),
+.table-box table th:nth-child(5) {
+  text-align: center;
+}
+
+/* AÇÕES SEMPRE NA DIREITA */
+.table-box table td:last-child,
+.table-box table th:last-child,
+.event-box table td:last-child,
+.event-box table th:last-child {
+  text-align: right !important;
+  padding-right: 10px;
+}
+
+/* 🔥 3ª coluna — Tipo de Evento (4x maior que Preço) */
+.event-box table td:nth-child(3),
+.event-box table th:nth-child(3) {
+  width: 400px;
+}
+
+/* BOX DE TABELA */
+.table-box,
+.event-box {
+  width: 80%;
+  max-width: 900px;
+  background: white;
+  padding: 25px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-bottom: 40px;
+  box-sizing: border-box;
+}
+
+/* HEADER DO BOX */
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.box-header h3 {
+  font-size: 18px;
+  color: black;
+}
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actions-right input {
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  color: black;
+  width: 200px;
+}
+
+.actions-right button {
+  background-color: #6d7a47;
+  color: white;
+  border: none;
+  padding: 7px 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* TABELA */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+table th {
+  background: #efefef;
+  padding: 10px;
+  text-align: left;
+  color: black;
+}
+
+table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #ddd;
+  color: black;
+}
+
+table img {
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
+}
+
+.icons {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ---------- MODAL ---------- */
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+/* Caixa branca */
+.modal-produto {
+  background: #fff;
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 25px 30px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: "Inter", sans-serif;
+  color: #000;
+  box-sizing: border-box;
+}
+
+.modal-produto h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #000;
+}
+
+/* Labels */
+.modal-produto label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+}
+
+/* Inputs gerais */
+.modal-produto input,
+.modal-produto textarea,
+.modal-produto select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cfcfcf;
+  font-size: 14px;
+  background: #fff;
+  color: #000;
+  box-sizing: border-box;
+}
+
+.modal-produto textarea {
+  height: 70px;
+  resize: none;
+}
+
+/* Duas colunas com tamanho idêntico */
+.linha-dupla {
+  display: flex;
+  gap: 20px;
+}
+
+.linha-dupla div {
+  flex: 1;
+}
+
+/* Botão verde */
+.btn-confirmar {
+  margin-top: 10px;
+  background: #6d7a47;
+  color: white;
+  border: none;
+  padding: 12px;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-confirmar:hover {
+  opacity: 0.92;
+}
+
+.modal-produto {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch; 
+}
+
+.modal-produto input,
+.modal-produto select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cfcfcf;
+  font-size: 14px;
+  background: #fff;
+  color: #000;
+  box-sizing: border-box;
+}
+
+.modal-produto textarea {
+  width: 100%;
+  height: 120px;       
+  min-height: 120px;
+  max-height: 120px;
+  resize: none;
+  box-sizing: border-box;
+  flex: 0 0 auto;       
+  padding: 10px;
+}
+
+.upload-area {
+  width: 100%;          
+  height: 120px;        
+  min-height: 120px;
+  max-height: 120px;
+  border: 2px dashed #999;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  margin-bottom: 0;  
+  box-sizing: border-box;
+  flex: 0 0 auto;     
+}
+
+/* ---------- FUNDO DO MODAL ---------- */
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+
+
+/* ------------------------------------------
+    CAIXA PADRÃO DOS MODAIS (EVENTO E PRODUTO)
+------------------------------------------- */
+.modal-evento,
+.modal-produto,
+.modal-produtos-evento {
+  background: #fff;
+  width: 430px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px 32px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: "Inter", sans-serif;
+  color: #000;
+  box-sizing: border-box;
+}
+
+
+
+/* ---------- TÍTULO DO MODAL ---------- */
+.modal-evento h2,
+.modal-produto h2,
+.modal-produtos-evento h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+
+
+/* ---------- LABELS ---------- */
+.modal-evento label,
+.modal-produto label,
+.modal-produtos-evento label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: -6px;
+}
+
+
+
+/* ---------- INPUTS / TEXTAREA / SELECT ---------- */
+.modal-evento input,
+.modal-evento textarea,
+.modal-produto input,
+.modal-produto textarea,
+.modal-produto select,
+.modal-produtos-evento input,
+.modal-produtos-evento textarea {
+  width: 100%;
+  padding: 11px;
+  border-radius: 6px;
+  border: 1px solid #cfcfcf;
+  font-size: 14px;
+  background: #fff;
+  color: #000;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: none;
+}
+
+
+/* Textarea maior igual ao mockup */
+.modal-evento textarea,
+.modal-produto textarea {
+  height: 110px;
+}
+
+
+
+/* ------------------------------------------
+       ÁREA DE UPLOAD (igual ao protótipo)
+------------------------------------------- */
+.upload-area {
+  width: 100%;
+  height: 120px;
+  border: 2px dashed #999;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+
+
+/* ---------- LINHA DUPLA (Categoria + Cor) ---------- */
+.linha-dupla {
+  display: flex;
+  gap: 18px;
+}
+
+.linha-dupla div {
+  flex: 1;
+}
+
+
+
+/* ---------- BOTÃO CONFIRMAR (verde) ---------- */
+.btn-confirmar {
+  margin-top: 10px;
+  background: #6d7a47;
+  color: white;
+  border: none;
+  padding: 13px;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-confirmar:hover {
+  opacity: 0.9;
+}
+
+
+
+/* ------------------------------------------
+        MODAL: ADICIONAR PRODUTOS AO EVENTO
+------------------------------------------- */
+
+/* Container da barra de busca */
+.busca-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.busca-container input {
+  flex: 1;
+}
+
+/* Botão + */
+.btn-add-produto {
+  width: 35px;
+  height: 35px;
+  font-size: 22px;
+  font-weight: bold;
+  border-radius: 50%;
+  border: none;
+  background: #6d7a47;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-add-produto:hover {
+  opacity: 0.9;
+}
+
+
+/* ---------- TABELA PRODUTOS ---------- */
+.tabela-produtos-evento {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.tabela-produtos-evento thead th {
+  font-size: 14px;
+  padding-bottom: 6px;
+  text-align: left;
+}
+
+.tabela-produtos-evento tbody td {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.tabela-produtos-evento img {
+  width: 45px;
+  height: 45px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.tabela-produtos-evento input[type="number"] {
+  width: 65px;
+  text-align: center;
+}
+
+.monitorar-container {
+  width: 100%;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.monitorar-box {
+  width: 95%;
+  background: #fff;
+  padding: 35px;
+  border-radius: 6px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.08);
+}
+
+.monitorar-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+/* ---------- DASHBOARD CONTENT ---------- */
+.dashboard-content {
+  width: 85%;         /* Diminuído */
+  margin: 0 auto;
+  color: #000 !important; /* Textos pretos */
+}
+
+/* ---------- CAMPO DE BUSCA ---------- */
+.top-search {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 350px; /* controla o tamanho máximo do input */
+}
+
+.search-wrapper input {
+  width: 100%;
+  height: 38px;
+  background: #fff;   /* fundo branco */
+  color: #000;        /* texto preto */
+  padding: 0 12px 0 36px; /* espaço para o ícone da lupa */
+  border: 1px solid #bfc4b5;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-wrapper svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17px;
+  height: 17px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ---------- TABELA ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 12px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e2e2e2;
+}
+
+td {
+  padding: 12px 8px;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---------- STATUS ---------- */
+.status-tag {
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.status-tag.reservado {
+  background: #4CAF50; /* verde */
+}
+
+.status-tag.andamento {
+  background: #1E90FF; /* azul */
+}
