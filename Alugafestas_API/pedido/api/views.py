@@ -8,7 +8,7 @@ import random
 import string
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from produto.models import Produto
-from pedido.models import Cliente, Pedido, ItemPedido
+from pedido.models import Cliente, Pedido, ItemPedido, MovimentoEstoque
 from pedido.api.serializers import (
     CarrinhoSerializer,
     CarrinhoItemSerializer,
@@ -116,6 +116,76 @@ class CarrinhoViewSet(viewsets.ViewSet):
             },
             status=status.HTTP_200_OK
         )
+    @action(detail=True, methods=["patch"])
+    def editar(self, request, pk=None):
+        """
+        PATCH /carrinho/editar/<produto_id>/
+        Body:
+        {
+            "quantidade": 3
+        }
+        """
+        produto = get_object_or_404(Produto, pk=pk)
+        serializer = AdicionarCarrinhoSerializer(data=request.data, context={"produto": produto})
+        serializer.is_valid(raise_exception=True)
+        nova_quantidade = serializer.validated_data["quantidade"]
+
+        carrinho = request.session.get("carrinho", {})
+        produto_id = str(produto.id)
+
+        if nova_quantidade > produto.quantidade:
+            return Response(
+                {"error": f"Estoque insuficiente. Disponível: {produto.quantidade}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if nova_quantidade <= 0:
+            # Remove o item se quantidade for 0 ou menor
+            carrinho.pop(produto_id, None)
+        else:
+            carrinho[produto_id] = nova_quantidade
+
+        request.session["carrinho"] = carrinho
+        request.session.modified = True
+
+        # Retorna carrinho atualizado
+        return self._retornar_carrinho(carrinho)
+
+    # Função auxiliar para montar o retorno do carrinho
+    def _retornar_carrinho(self, carrinho):
+        produtos = []
+        total = 0
+        for pid, qtd in carrinho.items():
+            p = get_object_or_404(Produto, pk=pid)
+            subtotal = p.preco * qtd
+            total += subtotal
+            produtos.append({
+                "id": p.id,
+                "nome": p.nome,
+                "quantidade": qtd,
+                "preco_unitario": p.preco,
+                "subtotal": subtotal,
+            })
+        return Response({"produtos": produtos, "total": total}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["delete"])
+    def remover(self, request, pk=None):
+        """
+        DELETE /carrinho/remover/<produto_id>/
+        Remove um produto do carrinho usando o ID na URL
+        """
+        produto = get_object_or_404(Produto, pk=pk)
+        carrinho = request.session.get("carrinho", {})
+        produto_id = str(produto.id)
+
+        if produto_id not in carrinho:
+            return Response({"error": "Produto não está no carrinho"}, status=status.HTTP_400_BAD_REQUEST)
+
+        del carrinho[produto_id]
+        request.session["carrinho"] = carrinho
+        request.session.modified = True
+
+        return self._retornar_carrinho(carrinho)
     @extend_schema(
     summary="Finalizar pedido (sem login)",
     request=PedidoCreateSerializer,
@@ -154,6 +224,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
         if not carrinho:
             return Response({"error": "Carrinho vazio"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Cria ou obtém o cliente
         cliente, _ = Cliente.objects.get_or_create(
             email=data["email"],
             defaults={
@@ -168,6 +239,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
             }
         )
 
+        # Cria o pedido
         pedido = Pedido.objects.create(
             cliente=cliente,
             token=gerar_token_aleatorio(10),
@@ -175,8 +247,18 @@ class CarrinhoViewSet(viewsets.ViewSet):
             hora_evento=data.get("hora_evento")
         )
 
+        # Adiciona itens ao pedido e atualiza estoque
         for produto_id, quantidade in carrinho.items():
             produto = get_object_or_404(Produto, id=produto_id)
+
+            # Valida estoque
+            if quantidade > produto.quantidade:
+                return Response(
+                    {"error": f"Estoque insuficiente para {produto.nome}. Disponível: {produto.quantidade}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Cria item do pedido
             ItemPedido.objects.create(
                 pedido=pedido,
                 produto=produto,
@@ -184,8 +266,23 @@ class CarrinhoViewSet(viewsets.ViewSet):
                 preco_unitario=produto.preco
             )
 
-        request.session["carrinho"] = {}
+            # Diminui estoque
+            produto.quantidade -= quantidade
+            produto.save()
 
+            # Registra movimentação de estoque
+            MovimentoEstoque.objects.create(
+                produto=produto,
+                tipo="SAIDA",
+                quantidade=quantidade,
+                motivo=f"Pedido {pedido.id}"
+            )
+
+        # Limpa carrinho
+        request.session["carrinho"] = {}
+        request.session.modified = True
+
+    # Retorna pedido serializado
         pedido_serializer = PedidoSerializer(pedido)
         return Response(pedido_serializer.data, status=status.HTTP_201_CREATED)
     @extend_schema(
@@ -230,23 +327,23 @@ class CarrinhoViewSet(viewsets.ViewSet):
                 produtos_texto += f"- {item.produto.nome} (Qtd: {item.quantidade}) R$ {item.preco_unitario}\n"
 
         mensagem = f"""
-*🛒 NOVO PEDIDO*
+* NOVO PEDIDO*
 
-📦 Pedido Nº: {pedido.id}
-🔐 Código: {pedido.token}
-📌 Status: {pedido.status}
+Pedido Nº: {pedido.id}
+Código: {pedido.token}
+ Status: {pedido.status}
 
-👤 Cliente: {cliente.nome}
-📞 Telefone: {cliente.telefone}
+ Cliente: {cliente.nome}
+ Telefone: {cliente.telefone}
 
-📍 Endereço:
+Endereço:
 {cliente.endereco}, {cliente.numero}
 {cliente.bairro} - {cliente.cidade}/{cliente.estado}
 CEP: {cliente.cep}
 
-🧾 Itens:
+ Itens:
 {produtos_texto}
-💰 Total: R$ {pedido.total:.2f}
+ Total: R$ {pedido.total:.2f}
 ——————————————
 """
         whatsapp_url = f"https://wa.me/{settings.WHATSAPP_NUMERO}?text={urllib.parse.quote(mensagem)}"
