@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./Dashboard.css";
-import Navbar from "../../../../d-casa-decor-admin/src/components/Navbar";
+import Navbar from "@/components/Navbar";
 
 export default function Status() {
   const [search, setSearch] = useState("");

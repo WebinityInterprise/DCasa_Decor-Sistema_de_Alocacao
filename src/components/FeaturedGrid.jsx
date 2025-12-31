@@ -1,19 +1,49 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const featuredItems = [
-    { img: "/images/kit1.jpg", name: "Kit Sonhos", price: "R$ 31,00" },
-    { img: "/images/kit2.jpg", name: "Kit Elegância", price: "R$ 45,00" },
-    { img: "/images/kit3.jpg", name: "Kit Romance", price: "R$ 52,00" },
-    { img: "/images/kit4.jpg", name: "Kit Alegria", price: "R$ 28,00" }
-];
 
 export default function FeaturedGrid() {
     const navigate = useNavigate();
+    const [destaques, setDestaques] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleImageClick = () => navigate("/KitDetalhes");
-    const handleRentClick = () => navigate("/KitDetalhes");
-    const handleSeeMoreClick = () => navigate("/Kits");
+    const apiUrl = import.meta.env.VITE_API_URL;
+
+    useEffect(() => {
+        const fetchDestaques = async () => {
+            try {
+                // Chama o endpoint filtrando por destaque=true
+                const response = await fetch(`${apiUrl}/produto/kits/?destaque=true`);
+                const data = await response.json();
+
+                // Trata paginação (se vier dentro de 'results', pega ele, senão pega direto)
+                const listaKits = data.results ? data.results : data;
+
+                setDestaques(listaKits);
+            } catch (error) {
+                console.error("Erro ao buscar destaques:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDestaques();
+    }, [apiUrl]);
+
+    // Função única para navegar para os detalhes
+    const handleOpenDetails = (id) => {
+        navigate(`/KitDetalhes/${id}`);
+    };
+
+    const handleSeeMoreClick = () => {
+        navigate("/Kits");
+    };
+
+    if (loading) {
+        return <div style={{ textAlign: "center", padding: "20px" }}>Carregando destaques...</div>;
+    }
+
+    // Se não houver destaques, esconde a seção para não ficar feio
+    if (destaques.length === 0) return null;
 
     return (
         <div className="container">
@@ -31,9 +61,13 @@ export default function FeaturedGrid() {
                     gap: "20px"
                 }}
             >
-                {featuredItems.map((item, idx) => (
+                {/* 
+                   .slice(0, 4) garante que mostre no máximo 4 itens na Home, 
+                   mesmo que a API retorne mais.
+                */}
+                {destaques.slice(0, 4).map((item) => (
                     <div
-                        key={idx}
+                        key={item.id}
                         style={{
                             border: "1px solid #ccc",
                             borderRadius: "5px",
@@ -41,14 +75,15 @@ export default function FeaturedGrid() {
                             padding: "10px",
                             transition: "transform 0.3s",
                             cursor: "pointer",
+                            backgroundColor: "#fff"
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                         onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                        onClick={() => handleOpenDetails(item.id)}
                     >
                         <img
-                            src={item.img}
-                            alt={item.name}
-                            onClick={handleImageClick}
+                            src={item.imagem}
+                            alt={item.nome}
                             style={{
                                 width: "100%",
                                 height: "150px",
@@ -57,9 +92,28 @@ export default function FeaturedGrid() {
                                 marginBottom: "10px"
                             }}
                         />
-                        <h4>{item.name}</h4>
-                        <p>{item.price}</p>
-                        <button className="green" onClick={handleRentClick}>
+                        <h4 style={{
+                            fontSize: "16px",
+                            margin: "10px 0",
+                            color: "#333",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                        }}>
+                            {item.nome}
+                        </h4>
+
+                        <p style={{ fontWeight: "bold", color: "#555", marginBottom: "10px" }}>
+                            {item.preco_formatado || `R$ ${item.preco}`}
+                        </p>
+
+                        <button
+                            className="green"
+                            onClick={(e) => {
+                                e.stopPropagation(); // Evita ativar o click do card e do botão ao mesmo tempo
+                                handleOpenDetails(item.id);
+                            }}
+                        >
                             Alugar
                         </button>
                     </div>

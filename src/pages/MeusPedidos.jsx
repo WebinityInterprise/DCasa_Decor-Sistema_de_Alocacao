@@ -1,51 +1,35 @@
 import React, { useState } from "react";
 import { FiSearch } from "react-icons/fi";
 
-// Simulando pedidos com kits completos
-const pedidos = [
-  {
-    codigo: "KIT001",
-    status: "Reservado",
-    itens: [
-      { id: 1, nome: "Vaso com pé branco 12cm", preco: 6, qtd: 2, imagem: "/images/kit1.jpg" },
-      { id: 2, nome: "Prato de sobremesa floral", preco: 5, qtd: 1, imagem: "/images/kit3.jpg" },
-      { id: 3, nome: "Taça vermelha decorada", preco: 5, qtd: 4, imagem: "/images/kit8.jpg" },
-    ],
-  },
-  {
-    codigo: "KIT002",
-    status: "Alugado",
-    itens: [
-      { id: 4, nome: "Vaso verde 15cm", preco: 6, qtd: 3, imagem: "/images/kit5.jpg" },
-      { id: 5, nome: "Vaso dourado 18cm", preco: 8, qtd: 1, imagem: "/images/kit6.jpg" },
-    ],
-  },
-  {
-    codigo: "KIT003",
-    status: "Devolvido",
-    itens: [
-      { id: 6, nome: "Prato azul cerâmica", preco: 7, qtd: 2, imagem: "/images/kit7.jpg" },
-      { id: 7, nome: "Vaso prateado moderno", preco: 9, qtd: 1, imagem: "/images/kit9.jpg" },
-    ],
-  },
-];
-
-
 export default function MeusPedidos() {
   const [codigo, setCodigo] = useState("");
   const [pedidoEncontrado, setPedidoEncontrado] = useState(null);
   const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleBuscar = () => {
-    const pedido = pedidos.find(
-      (p) => p.codigo.toUpperCase() === codigo.trim().toUpperCase()
-    );
-    if (pedido) {
-      setPedidoEncontrado(pedido);
-      setErro("");
-    } else {
-      setPedidoEncontrado(null);
-      setErro("Pedido não encontrado.");
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  const handleBuscar = async () => {
+    if (!codigo.trim()) return;
+
+    setLoading(true);
+    setErro("");
+    setPedidoEncontrado(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/pedido/carrinho/consultar/${codigo.trim().toUpperCase()}/`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setPedidoEncontrado(data);
+      } else {
+        setErro("Pedido não encontrado ou código inválido.");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar pedido:", error);
+      setErro("Erro de conexão com o servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,27 +39,28 @@ export default function MeusPedidos() {
         Meus Pedidos
       </h1>
 
-      {/* Busca do pedido */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", gap: "10px" }}>
         <input
           type="text"
-          placeholder="Digite o código do pedido"
+          placeholder="Digite o código (Ex: 72QYIEB736)"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
           style={{ padding: "10px", width: "300px", borderRadius: "6px", border: "1px solid #ccc" }}
         />
         <button
           onClick={handleBuscar}
+          disabled={loading}
           style={{
             padding: "10px 20px",
             backgroundColor: "#899662",
             color: "#fff",
             border: "none",
             borderRadius: "6px",
-            cursor: "pointer",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1
           }}
         >
-          <FiSearch />
+          {loading ? "..." : <FiSearch />}
         </button>
       </div>
 
@@ -91,26 +76,33 @@ export default function MeusPedidos() {
             marginTop: "20px",
           }}
         >
-          <h2 style={{ marginBottom: "16px" }}>
-            Código do Pedido: {pedidoEncontrado.codigo} | Status:{" "}
-            <span
-              style={{
-                color:
-                  pedidoEncontrado.status === "Reservado"
-                    ? "#f0ad4e"
-                    : pedidoEncontrado.status === "Alugado"
-                    ? "#5cb85c"
-                    : pedidoEncontrado.status === "Devolvido"
-                    ?"#0275d8"
-                    : "#000",
-                fontWeight: "600",
-              }}
-            >
-              {pedidoEncontrado.status}
-            </span>
-          </h2>
+          <div style={{ borderBottom: "1px solid #eee", paddingBottom: "10px", marginBottom: "15px" }}>
+            <h2 style={{ fontSize: "18px", margin: 0 }}>
+              Pedido: <span style={{ color: "#899662" }}>#{pedidoEncontrado.token}</span>
+            </h2>
+            <p style={{ margin: "5px 0", fontSize: "14px" }}>
+              Status:{" "}
+              <span
+                style={{
+                  color:
+                    pedidoEncontrado.status === "PENDENTE" ? "#f0ad4e" :
+                      pedidoEncontrado.status === "PAGO" ? "#5bc0de" :
+                        pedidoEncontrado.status === "SEPARANDO" ? "#5bc0de" :
+                          pedidoEncontrado.status === "PRONTO PARA RETIRADA" ? "#0275d8" :
+                            pedidoEncontrado.status === "CONCLUÍDO" ? "#5cb85c" :
+                              pedidoEncontrado.status === "CANCELADO" ? "#d9534f" :
+                                "#000",
+                  fontWeight: "bold",
+                }}
+              >
+                {pedidoEncontrado.status}
+              </span>
+            </p>
+            <p style={{ fontSize: "13px", color: "#666" }}>
+              Cliente: {pedidoEncontrado.cliente?.nome} | Evento: {pedidoEncontrado.data_evento || "N/A"}
+            </p>
+          </div>
 
-          {/* Grid de itens do kit */}
           <div
             style={{
               display: "grid",
@@ -124,8 +116,8 @@ export default function MeusPedidos() {
           >
             <span>Item</span>
             <span>Qtd</span>
-            <span>Preço</span>
-            <span>Total</span>
+            <span>Unitário</span>
+            <span>Subtotal</span>
           </div>
 
           {pedidoEncontrado.itens.map((item) => (
@@ -140,34 +132,32 @@ export default function MeusPedidos() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                {/* EXIBIÇÃO DA IMAGEM ATUALIZADA */}
                 <img
-                  src={item.imagem}
-                  alt={item.nome}
+                  src={item.produto_imagem || "https://via.placeholder.com/70x70?text=Sem+Foto"}
+                  alt={item.produto_nome}
                   style={{
                     width: "70px",
                     height: "70px",
                     objectFit: "cover",
                     borderRadius: "6px",
-                    border: "1px solid #ccc",
+                    border: "1px solid #eee"
                   }}
+                  onError={(e) => { e.target.src = "https://via.placeholder.com/70x70?text=Erro+Foto"; }}
                 />
                 <div>
-                  <p style={{ fontWeight: "600", margin: "4px 0" }}>{item.nome}</p>
+                  <p style={{ fontWeight: "600", margin: "0", fontSize: "14px" }}>{item.produto_nome}</p>
                 </div>
               </div>
 
-              <p>{item.qtd}</p>
-              <p>xR${item.preco.toFixed(2)}</p>
-              <p>R${(item.qtd * item.preco).toFixed(2)}</p>
+              <p style={{ fontSize: "14px" }}>{item.quantidade}</p>
+              <p style={{ fontSize: "14px" }}>R$ {Number(item.preco_unitario).toFixed(2)}</p>
+              <p style={{ fontSize: "14px", fontWeight: "600" }}>R$ {Number(item.subtotal).toFixed(2)}</p>
             </div>
           ))}
 
-          {/* Preço total do kit */}
-          <div style={{ textAlign: "right", marginTop: "16px", fontWeight: "700", fontSize: "16px" }}>
-            Total do Pedido: R$
-            {pedidoEncontrado.itens
-              .reduce((acc, item) => acc + item.qtd * item.preco, 0)
-              .toFixed(2)}
+          <div style={{ textAlign: "right", marginTop: "16px", fontWeight: "700", fontSize: "18px", color: "#2B3A21" }}>
+            Total: R$ {Number(pedidoEncontrado.total).toFixed(2)}
           </div>
         </div>
       )}

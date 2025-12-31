@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function KitDetalhes() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
-  const itensDoKit = [
-    { nome: "Pratos de Natal Verde", quantidade: "7", preco: "R$ 50,00", img: "/images/kit1.jpg", imagensCarrossel: ["/images/kit1a.jpg", "/images/kit1b.jpg"] },
-    { nome: "Prato Principal", quantidade: "7", preco: "R$ 10,00", img: "/images/kit2.jpg", imagensCarrossel: ["/images/kit2a.jpg", "/images/kit2b.jpg"] },
-    { nome: "Prato de Sobremesa", quantidade: "7", preco: "R$ 6,00", img: "/images/kit3.jpg", imagensCarrossel: ["/images/kit3a.jpg", "/images/kit3b.jpg"] },
-    { nome: "Pratos de Natal Vermelho", quantidade: "7", preco: "R$ 5,00", img: "/images/kit4.jpg", imagensCarrossel: ["/images/kit4a.jpg", "/images/kit4b.jpg"] },
-  ];
-
-  const [kitSelecionado, setKitSelecionado] = useState(itensDoKit[0]);
+  const [kitData, setKitData] = useState(null);
+  const [produtos, setProdutos] = useState([]);
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
   const [imagemAtual, setImagemAtual] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 900);
+  const [loading, setLoading] = useState(true);
+
+  // --- ESTADOS DO FORMULÁRIO ---
+  const [dataRetirada, setDataRetirada] = useState("");
+  const [dataDevolucao, setDataDevolucao] = useState("");
+  const [tipoEntrega, setTipoEntrega] = useState("RETIRADA");
+
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 900);
@@ -21,367 +25,197 @@ export default function KitDetalhes() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const mudarImagem = (direcao) => {
-    if (direcao === "left") {
-      setImagemAtual((prev) =>
-        prev === 0 ? kitSelecionado.imagensCarrossel.length - 1 : prev - 1
-      );
-    } else {
-      setImagemAtual((prev) =>
-        prev === kitSelecionado.imagensCarrossel.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
+  useEffect(() => {
+    const fetchKitDetalhes = async () => {
+      try {
+        if (!id) return;
+        const response = await fetch(`${apiUrl}/produto/kits/${id}/`);
+        if (!response.ok) throw new Error("Erro ao buscar detalhes");
+        const data = await response.json();
+        setKitData(data);
 
-  const handleItemClick = (index) => {
-    setKitSelecionado(itensDoKit[index]);
-    setImagemAtual(0);
-  };
+        if (data.produtos && data.produtos.length > 0) {
+          const produtosFormatados = data.produtos.map((p) => {
+            let imgs = [];
+            if (p.imagens_carrossel && p.imagens_carrossel.length > 0) {
+              imgs = p.imagens_carrossel.map((item) => item.imagem);
+            } else if (p.imagem) {
+              imgs = [p.imagem];
+            }
+            return { ...p, imagensCarrossel: imgs };
+          });
+          setProdutos(produtosFormatados);
+          setProdutoSelecionado(produtosFormatados[0]);
+        }
+      } catch (error) {
+        console.error("Erro:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchKitDetalhes();
+  }, [id, apiUrl]);
 
+  // --- FUNÇÃO DE ALUGAR (AGORA VIA LOCALSTORAGE) ---
   const handleRentClick = () => {
+    if (!dataRetirada || !dataDevolucao) {
+      alert("Por favor, selecione as datas de Retirada e Devolução.");
+      return;
+    }
+
+    // Criamos o objeto do kit para o carrinho
+    const novoItem = {
+      id: `kit_${id}`, // ID único para controle no front
+      tipo: "kit",
+      original_id: id,
+      quantidade: 1,
+      data_retirada: dataRetirada,
+      data_devolucao: dataDevolucao,
+      tipo_entrega: tipoEntrega,
+    };
+
+    // 1. Pegar o carrinho atual do navegador ou criar um vazio
+    const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho") || "[]");
+
+    // 2. Verificar se este kit já está no carrinho para não duplicar
+    const index = carrinhoAtual.findIndex((item) => item.id === novoItem.id);
+
+    if (index > -1) {
+      // Se já existe, apenas atualizamos os dados/quantidade
+      carrinhoAtual[index] = { ...carrinhoAtual[index], ...novoItem };
+    } else {
+      // Se é novo, adicionamos à lista
+      carrinhoAtual.push(novoItem);
+    }
+
+    // 3. Salvar de volta no LocalStorage
+    localStorage.setItem("carrinho", JSON.stringify(carrinhoAtual));
+
+    // 4. Navegar para a página do Carrinho
     navigate("/Carrinho");
   };
 
-  return (
-    <main
-      style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "5px 24px",
-        fontFamily: "'Arial', sans-serif",
-        color: "#333",
-      }}
-    >
-      {/* Seção do carrossel e informações do kit */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-          gap: isMobile ? "30px" : "60px",
-          alignItems: "start",
-          marginTop: "20px",
-        }}
-      >
-        {/* Carrossel */}
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "520px",
-            margin: isMobile ? "0 auto" : "0",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              borderRadius: "10px",
-              overflow: "hidden",
-              backgroundColor: "#fff",
-              boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-              border: "1px solid #eee",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "10px 0",
-            }}
-          >
-            <img
-              src={kitSelecionado.imagensCarrossel[imagemAtual]}
-              alt={kitSelecionado.nome}
-              style={{
-                width: isMobile ? "90%" : "70%",
-                height: "auto",
-                borderRadius: "8px",
-                objectFit: "cover",
-                display: "block",
-                margin: "0 auto",
-                transition: "opacity 0.4s ease-in-out",
-              }}
-            />
+  const mudarImagem = (direcao) => {
+    if (!produtoSelecionado || !produtoSelecionado.imagensCarrossel) return;
+    const total = produtoSelecionado.imagensCarrossel.length;
+    if (total <= 1) return;
+    if (direcao === "left") setImagemAtual((prev) => (prev === 0 ? total - 1 : prev - 1));
+    else setImagemAtual((prev) => (prev === total - 1 ? 0 : prev + 1));
+  };
 
-            {["left", "right"].map((dir) => (
-              <button
-                key={dir}
-                onClick={() => mudarImagem(dir)}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  [dir === "left" ? "left" : "right"]: "16px",
-                  backgroundColor: "#6B774D",
-                  color: "white",
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "50%",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "22px",
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                  transition: "background-color 0.2s, transform 0.2s",
-                  zIndex: 3,
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#5b6843";
-                  e.currentTarget.style.transform =
-                    "translateY(-50%) scale(1.05)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "#6B774D";
-                  e.currentTarget.style.transform =
-                    "translateY(-50%) scale(1)";
-                }}
-              >
-                {dir === "left" ? "‹" : "›"}
-              </button>
-            ))}
+  const handleItemClick = (index) => {
+    setProdutoSelecionado(produtos[index]);
+    setImagemAtual(0);
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: "50px" }}>Carregando...</div>;
+  if (!kitData) return <div style={{ textAlign: "center", padding: "50px" }}>Kit não encontrado.</div>;
+
+  return (
+    <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "5px 24px", fontFamily: "'Arial', sans-serif", color: "#333" }}>
+      <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "30px" : "60px", alignItems: "start", marginTop: "20px" }}>
+        {/* CARROSSEL */}
+        <div style={{ width: "100%", maxWidth: "520px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ position: "relative", width: "100%", borderRadius: "10px", overflow: "hidden", backgroundColor: "#fff", border: "1px solid #eee", display: "flex", justifyContent: "center", alignItems: "center", padding: "10px 0", minHeight: "300px" }}>
+            {produtoSelecionado?.imagensCarrossel?.length > 0 ? (
+              <img src={produtoSelecionado.imagensCarrossel[imagemAtual]} alt={produtoSelecionado.nome} style={{ width: isMobile ? "90%" : "70%", maxHeight: "400px", objectFit: "contain" }} />
+            ) : (
+              <p>Sem Imagem</p>
+            )}
+            {produtoSelecionado?.imagensCarrossel?.length > 1 && (
+              <>
+                <button onClick={() => mudarImagem("left")} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", background: "#6B774D", color: "#fff", border: "none", borderRadius: "50%", width: "40px", height: "40px", cursor: "pointer", fontSize: "20px" }}>‹</button>
+                <button onClick={() => mudarImagem("right")} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "#6B774D", color: "#fff", border: "none", borderRadius: "50%", width: "40px", height: "40px", cursor: "pointer", fontSize: "20px" }}>›</button>
+              </>
+            )}
           </div>
+          <p style={{ marginTop: "10px", fontSize: "14px", color: "#666" }}>Visualizando: <strong>{produtoSelecionado?.nome}</strong></p>
         </div>
 
-        {/* Informações do kit */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            maxWidth: "100%",
-            textAlign: isMobile ? "center" : "left",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "26px",
-              fontWeight: "700",
-              marginBottom: "0px",
-              color: "#2B3A21",
-            }}
-          >
-            Kit de Natal - {kitSelecionado.nome}
-          </h1>
+        {/* INFO */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+          <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#2B3A21", margin: 0 }}>{kitData.nome}</h1>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              justifyContent: isMobile ? "center" : "flex-start",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#555",
-              }}
-            >
-              Código:
-            </p>
-            <span
-              style={{
-                padding: "4px 12px",
-                borderRadius: "12px",
-                backgroundColor: "#899662",
-                color: "#fff",
-                fontWeight: "600",
-                fontSize: "12px",
-              }}
-            >
-              123456789
-            </span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ background: "#899662", color: "#fff", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>Código: {kitData.codigo}</span>
           </div>
 
-            <div style={{ display: "flex", gap: "20px", flex: 1 }}>
-            {/* Entrega */}
-            <div style={{ flex: "1 1 50%", minWidth: "200px" }}>
-                <p style={{ marginBottom: "6px", fontWeight: "500", color: "#555" }}>
-                Entrega/Retirada
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <input
-                    type="date"
-                    style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",
-                    }}
-                />
-                <select
-                    style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",
-                    }}
-                >
-                    <option>Horário</option>
-                    <option>18:00</option>
-                    <option>22:00</option>
-                </select>
-                </div>
+          {/* --- SELETOR DE ENTREGA --- */}
+          <div>
+            <p style={{ marginBottom: "8px", fontWeight: "600", color: "#555" }}>Opção de Entrega:</p>
+            <div style={{ display: "flex", gap: "20px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                <input type="radio" name="tipoEntrega" value="RETIRADA" checked={tipoEntrega === "RETIRADA"} onChange={() => setTipoEntrega("RETIRADA")} style={{ accentColor: "#899662" }} />
+                Retirar na Loja
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                <input type="radio" name="tipoEntrega" value="ENTREGA" checked={tipoEntrega === "ENTREGA"} onChange={() => setTipoEntrega("ENTREGA")} style={{ accentColor: "#899662" }} />
+                Receber (Entrega)
+              </label>
             </div>
-
-            {/* Devolução */}
-            <div style={{ flex: "1 1 50%", minWidth: "200px" }}>
-                <p style={{ marginBottom: "6px", fontWeight: "500", color: "#555" }}>
-                Devolução
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <input
-                    type="date"
-                    style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",
-                    }}
-                />
-                <select
-                    style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",
-                    }}
-                >
-                    <option>Horário</option>
-                    <option>08:00</option>
-                    <option>12:00</option>
-                </select>
-                </div>
-            </div>
-            </div>
-
-          <p
-            style={{
-              fontSize: "28px",
-              fontWeight: "700",
-              color: "#2B3A21",
-              marginTop: "10px",
-            }}
-          >
-            R$1.500,00
-          </p>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: "-20px",
-            }}
-          >
-            <button
-              style={{
-                backgroundColor: "#899662",
-                color: "#fff",
-                padding: "14px 40px",
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "600",
-                fontSize: "16px",
-                transition: "all 0.2s",
-                width: isMobile ? "90%" : "80%",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor = "#6e7b4f")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = "#899662")
-              }
-              onClick={handleRentClick}
-            >
-              ALUGAR KIT
-            </button>
           </div>
 
-          {/* Detalhes do kit */}
-          <div style={{ marginTop: "-20px" }}>
-            <h2
-              style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                marginBottom: "0px",
-                color: "#2B3A21",
-              }}
-            >
-              Detalhes do Kit
-            </h2>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#555",
-                lineHeight: "1.6",
-              }}
-            >
-              Mini Wedding Rústico Chic. Torne seu momento inesquecível com
-              nosso Kit Especial, pensado para detalhes encantadores.
-              <br />
-              Não inclui bolo.
-            </p>
+          {/* --- DATAS --- */}
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 200px" }}>
+              <p style={{ marginBottom: "6px", fontWeight: "600", color: "#555" }}>Data de Retirada</p>
+              <input type="date" value={dataRetirada} onChange={(e) => setDataRetirada(e.target.value)} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
+            </div>
+            <div style={{ flex: "1 1 200px" }}>
+              <p style={{ marginBottom: "6px", fontWeight: "600", color: "#555" }}>Data de Devolução</p>
+              <input type="date" value={dataDevolucao} onChange={(e) => setDataDevolucao(e.target.value)} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
+            </div>
+          </div>
+
+          <p style={{ fontSize: "32px", fontWeight: "700", color: "#2B3A21", marginTop: "10px" }}>{kitData.preco_formatado || `R$ ${kitData.preco}`}</p>
+
+          <button
+            onClick={handleRentClick}
+            style={{
+              backgroundColor: "#899662",
+              color: "#fff",
+              padding: "16px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "16px",
+              marginTop: "5px",
+              width: isMobile ? "100%" : "300px",
+              boxShadow: "0 4px 10px rgba(137, 150, 98, 0.3)",
+            }}
+          >
+            ALUGAR KIT COMPLETO
+          </button>
+
+          <div style={{ marginTop: "20px" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#2B3A21" }}>Descrição do Kit</h3>
+            <p style={{ fontSize: "14px", color: "#555", lineHeight: "1.6" }}>{kitData.descricao}</p>
           </div>
         </div>
       </section>
 
-      {/* Itens do kit */}
-      <section style={{ marginTop: "50px" }}>
-        <h2
-          style={{
-            fontSize: "22px",
-            fontWeight: "700",
-            marginBottom: "20px",
-          }}
-        >
-          Itens do Kit
-        </h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-            gap: "20px",
-          }}
-        >
-          {itensDoKit.map((item, index) => (
+      {/* Grid de Itens */}
+      <section style={{ marginTop: "60px" }}>
+        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "20px", color: "#2B3A21" }}>Itens Inclusos</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "20px" }}>
+          {produtos.map((item, index) => (
             <div
-              key={index}
-              style={{
-                textAlign: "center",
-                border: "1px solid #eee",
-                borderRadius: "12px",
-                padding: "16px",
-                boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
-                backgroundColor: "#fff",
-                cursor: "pointer",
-                transition: "transform 0.3s, box-shadow 0.3s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.05)";
-                e.currentTarget.style.boxShadow =
-                  "0 8px 16px rgba(0,0,0,0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 8px rgba(0,0,0,0.05)";
-              }}
+              key={item.id}
               onClick={() => handleItemClick(index)}
+              style={{
+                border: produtoSelecionado?.id === item.id ? "2px solid #899662" : "1px solid #eee",
+                borderRadius: "12px",
+                padding: "10px",
+                textAlign: "center",
+                cursor: "pointer",
+                transition: "transform 0.2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
-              <img
-                src={item.img}
-                alt={item.nome}
-                style={{
-                  borderRadius: "8px",
-                  marginBottom: "12px",
-                  width: "80%",
-                  objectFit: "cover",
-                  transition: "transform 0.3s",
-                }}
-              />
-              <p style={{ fontSize: "14px", color: "#777" }}>{item.nome}</p>
-              <p style={{ fontWeight: "600", marginBottom: "4px" }}>
-                {item.quantidade}x{item.preco}
-              </p>
+              <img src={item.imagem} alt={item.nome} style={{ width: "100%", height: "100px", objectFit: "contain" }} />
+              <p style={{ fontSize: "13px", fontWeight: "600", marginTop: "5px" }}>{item.nome}</p>
             </div>
           ))}
         </div>
