@@ -38,12 +38,20 @@ class Pedido(models.Model):
         ("CANCELADO", "Cancelado"),
         ("CONCLUIDO", "Concluído"),
     ]
-
+    TIPO_ENTREGA_CHOICES = [
+        ("RETIRADA", "Retirar na Loja"),
+        ("ENTREGA", "Entregar no Endereço"),
+    ]
     token = models.CharField(max_length=32, unique=True, default=uuid.uuid4)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="pedidos")
     criado_em = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS, default="PENDENTE")
-
+    tipo_entrega = models.CharField(max_length=20, choices=TIPO_ENTREGA_CHOICES, default="RETIRADA")
+    # Data que o cliente pega ou a loja entrega (Início do aluguel)
+    data_retirada = models.DateField(null=True, blank=True)
+    
+    # Data que o cliente devolve ou a loja busca (Fim do aluguel)
+    data_devolucao = models.DateField(null=True, blank=True)
     # Dados do evento
     data_evento = models.DateField(null=True, blank=True)
     hora_evento = models.TimeField(null=True, blank=True)

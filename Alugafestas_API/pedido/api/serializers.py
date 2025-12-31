@@ -17,13 +17,17 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
 class PedidoSerializer(serializers.ModelSerializer):
     cliente = ClienteSerializer(read_only=True)
     itens = ItemPedidoSerializer(many=True, read_only=True)
-    cliente_id = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all(), source='cliente', write_only=True)
     
     class Meta:
         model = Pedido
-        fields = ['id', 'token', 'cliente', 'cliente_id', 'data_evento', 'status', 'criado_em', 'total', 'itens']
+        fields = [
+            'id', 'token', 'cliente', 'status', 'criado_em', 'total', 'itens',
+            'tipo_entrega', 'data_retirada', 'data_devolucao', 
+            'data_evento', 'hora_evento'
+        ]
 
 class PedidoCreateSerializer(serializers.Serializer):
+    # Dados do Cliente
     nome = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     telefone = serializers.CharField(max_length=20)
@@ -33,8 +37,15 @@ class PedidoCreateSerializer(serializers.Serializer):
     cidade = serializers.CharField(max_length=100)
     estado = serializers.CharField(max_length=2, default="SP")
     cep = serializers.CharField(max_length=15)
-    data_evento = serializers.DateField(required=True)
-    hora_evento = serializers.TimeField(required=True)
+    
+    # Dados do Evento
+    data_evento = serializers.DateField(required=False, allow_null=True)
+    hora_evento = serializers.TimeField(required=False, allow_null=True)
+
+    # --- NOVOS CAMPOS OBRIGATÓRIOS PARA ALUGUEL ---
+    tipo_entrega = serializers.ChoiceField(choices=["RETIRADA", "ENTREGA"], default="RETIRADA")
+    data_retirada = serializers.DateField(required=True, input_formats=['%Y-%m-%d'])
+    data_devolucao = serializers.DateField(required=True, input_formats=['%Y-%m-%d'])
 
 class CarrinhoItemSerializer(serializers.Serializer):
     id = serializers.CharField(help_text="ID único no carrinho (ex: 'prod_1' ou 'kit_5')")
@@ -52,9 +63,11 @@ class CarrinhoSerializer(serializers.Serializer):
 
 class AdicionarCarrinhoSerializer(serializers.Serializer):
     quantidade = serializers.IntegerField(min_value=1)
+    # Novos campos opcionais para guardar a preferência do usuário
+    data_retirada = serializers.DateField(required=False, format='%Y-%m-%d')
+    data_devolucao = serializers.DateField(required=False, format='%Y-%m-%d')
 
     def validate_quantidade(self, value):
-        # Validação simples, a verificação de estoque real ocorre na View
         return value
 
 # Serializer status
