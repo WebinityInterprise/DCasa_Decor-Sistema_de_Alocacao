@@ -1,119 +1,108 @@
 from rest_framework import viewsets
-from produto.models import Categoria, Produto, Kit
-from produto.api.serializers import (
-    CategoriaSerializer, ProdutoSerializer, KitSerializer,
-    CategoriaBannerSerializer, ProdutoDestaqueSerializer
-)
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from produto.models import Categoria, Produto, Kit
+from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer
 
-# ===========================
-# CATEGORIA
-# ===========================
+# --- Paginação Personalizada ---
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 28  # Número de produtos por página (mesmo do React)
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+# --- Categoria ---
+@extend_schema(tags=['Categorias'])
 class CategoriaViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para categorias.
-
-    GET público: todos podem visualizar categorias.
-    Outros métodos (POST, PUT, DELETE) requerem autenticação.
+    Endpoints para gerenciamento de categorias.
+    GET permite listar todas as categorias.
     """
-    queryset = Categoria.objects.all()          # Todos os objetos da tabela Categoria
-    serializer_class = CategoriaSerializer     # Serializer que define como a Categoria será convertida em JSON
-    permission_classes = [IsAuthenticatedOrReadOnly]  # GET é público, outros métodos precisam de login
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+    permission_classes = []  # Ajustar conforme necessidade (ex: IsAuthenticated)
 
-# ===========================
-# PRODUTO
-# ===========================
+# --- Produto ---
+@extend_schema(tags=['Produtos'])
 class ProdutoViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para produtos.
-
-    GET público: todos podem visualizar produtos.
-    Outros métodos (POST, PUT, DELETE) requerem autenticação.
+    Endpoints para gerenciamento de produtos.
+    Inclui busca avançada via endpoint customizado.
     """
-    queryset = Produto.objects.all()           # Todos os produtos
-    serializer_class = ProdutoSerializer       # Serializer padrão
-    permission_classes = [IsAuthenticatedOrReadOnly]  
+    queryset = Produto.objects.all().order_by('id')
+    serializer_class = ProdutoSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = []
 
-    # ---------------------------
-    # PRODUTOS EM DESTAQUE
-    # ---------------------------
-    @action(detail=False, methods=['get'])
-    def destaque(self, request):
-        """
-        Retorna todos os produtos marcados como destaque.
-
-        Uso:
-            /api/produtos/destaque/
-
-        Ideal para exibir na homepage ou vitrines.
-
-        Retorna:
-            Lista de produtos usando ProdutoDestaqueSerializer.
-        """
-        produtos = Produto.objects.filter(destaque=True)
-        serializer = ProdutoDestaqueSerializer(produtos, many=True)
-        return Response(serializer.data)
-
-    # ---------------------------
-    # BUSCA DE PRODUTOS
-    # ---------------------------
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='q', description='Texto para busca no nome, categoria ou código', required=False, type=str),
+            OpenApiParameter(name='cor', description='Filtra por cor (ex: azul, branco, todas)', required=False, type=str),
+            OpenApiParameter(name='preco_max', description='Filtra pelo preço máximo', required=False, type=float),
+            OpenApiParameter(name='categoria', description='Filtra pela categoria (ex: Vasos, Todas)', required=False, type=str),
+        ],
+        responses=ProdutoSerializer(many=True),
+        description="Busca avançada de produtos com filtros de texto, cor, preço e categoria.",
+        tags=['Produtos']
+    )
     @action(detail=False, methods=['get'])
     def busca_produto(self, request):
         """
-        Busca produtos por nome, categoria, cor, tamanho e faixa de preço.
-
-        Parâmetros de query string:
-        - q: texto para pesquisar no nome do produto ou categoria
-        - cor: cor do produto (opcional, precisa existir no modelo)
-        - tamanho: tamanho do produto (opcional, precisa existir no modelo)
-        - preco_min: preço mínimo (opcional)
-        - preco_max: preço máximo (opcional)
-
-        Exemplos:
-        /api/produtos/busca_produto/?q=bolo&cor=vermelho&tamanho=M&preco_min=10&preco_max=100
+        Endpoint customizado para busca de produtos.
+        URL: /produtos/busca_produto/?q=vaso&cor=azul&preco_max=50&categoria=Vasos
         """
-        q = request.query_params.get('q', '').strip()        # pesquisa por nome ou categoria
-        cor = request.query_params.get('cor', '').strip()    # pesquisa por cor
-        preco_min = request.query_params.get('preco_min')    # preço mínimo
-        preco_max = request.query_params.get('preco_max')    # preço máximo
+        queryset = self.get_queryset()
 
-        produtos = Produto.objects.all()                     # inicia com todos os produtos
-
-        # Filtra por nome ou categoria
-        if q:
-            produtos = produtos.filter(
-                Q(nome__icontains=q) |
-                Q(categoria__nome__icontains=q)
+        # Filtro de texto
+        query = request.query_params.get('q')
+        if query:
+            queryset = queryset.filter(
+                Q(nome__icontains=query) | 
+                Q(categoria__nome__icontains=query) |
+                Q(codigo__icontains=query)
             )
 
-        # Filtra por cor
-        if cor:
-            produtos = produtos.filter(cor__icontains=cor)  # precisa do campo 'cor' no modelo Produto
+        # Filtro de cor
+        cor = request.query_params.get('cor')
+        if cor and cor != "Todas":
+            queryset = queryset.filter(cor__iexact=cor)
 
-        # Filtra por preço mínimo
-        if preco_min:
-            produtos = produtos.filter(preco__gte=preco_min)
-
-        # Filtra por preço máximo
+        # Filtro de preço máximo
+        preco_max = request.query_params.get('preco_max')
         if preco_max:
-            produtos = produtos.filter(preco__lte=preco_max)
+            queryset = queryset.filter(preco__lte=preco_max)
 
-        serializer = ProdutoSerializer(produtos, many=True)
+        # Filtro de categoria
+        categoria = request.query_params.get('categoria')
+        if categoria and categoria != "Todas":
+            queryset = queryset.filter(categoria__nome__iexact=categoria)
+
+        # Paginação
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-# ===========================
-# KIT
-# ===========================
+# --- Kit ---
+@extend_schema(tags=['Kits'])
 class KitViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para kits de produtos.
-
-    GET público: todos podem visualizar kits.
-    Outros métodos (POST, PUT, DELETE) requerem autenticação.
+    Endpoints para gerenciamento de Kits.
+    Permite filtrar kits em destaque para a Home Page.
     """
-    queryset = Kit.objects.all()             # Todos os kits
-    serializer_class = KitSerializer         # Serializer padrão para kits
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = Kit.objects.all().order_by('-id')
+    serializer_class = KitSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = []
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        destaque = self.request.query_params.get('destaque')
+        if destaque == 'true':
+            queryset = queryset.filter(destaque=True)
+        return queryset
