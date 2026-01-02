@@ -1,5 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// ALTERAÇÃO AQUI: Troquei BrowserRouter por HashRouter
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -19,10 +20,11 @@ import Login from "./pages/Login/Login";
 import Produtos from "./pages/Dashboard/Produtos";
 import EventosAdmin from "./pages/Dashboard/Eventos";
 import Status from "./pages/Dashboard/Status";
-import ProdutoDetalhes from "./pages/ProdutoDetalhes"; // <--- IMPORTAR
+import ProdutoDetalhes from "./pages/ProdutoDetalhes";
 
 function App() {
   return (
+    // O <Router> agora é um HashRouter
     <Router>
       <ScrollToTop />
 
@@ -46,7 +48,6 @@ function App() {
         <Route path="/kits" element={<><Navbar /><Kits /><Footer /></>} />
         <Route path="/pesquisa" element={<><Navbar /><Pesquisa /><Footer /></>} />
         <Route path="/MeusPedidos" element={<><Navbar /><MeusPedidos /><Footer /></>} />
-        {/* Rota NOVA para PRODUTOS INDIVIDUAIS */}
         <Route path="/produto/:id" element={<><Navbar /><ProdutoDetalhes /><Footer /></>} />
 
         {/* ================= ADMIN ================= */}

@@ -41,8 +41,6 @@ export default function Pesquisa() {
 
         // Paginação
         params.append("page", paginaAtual.toString());
-        // Se quiser forçar o tamanho da página via front:
-        // params.append("page_size", produtosPorPagina.toString()); 
 
         // Filtros (Só envia se não for vazio ou "Todas")
         if (busca) params.append("q", busca);
@@ -105,10 +103,20 @@ export default function Pesquisa() {
     setPaginaAtual(1);
   }
 
-  // Se for um produto avulso, você pode ter uma rota /produto/:id ou usar a mesma /kit/:id
-  // Depende de como você configurou o KitDetalhes. Vou manter /kit/ para consistência.
-  const handleAlugar = (id) => {
-    navigate(`/produto/${id}`); // Manda para a página ProdutoDetalhes
+  // --- FUNÇÃO DE NAVEGAÇÃO CORRIGIDA ---
+  // Agora recebe o OBJETO inteiro (item), não apenas o ID
+  const handleAlugar = (item) => {
+    // Verifica se a Categoria tem "kit" no nome OU se o Nome do produto tem "kit"
+    const nomeCategoria = item.categoria?.nome?.toLowerCase() || "";
+    const nomeProduto = item.nome?.toLowerCase() || "";
+
+    const isKit = nomeCategoria.includes("kit") || nomeProduto.includes("kit");
+
+    if (isKit) {
+      navigate(`/KitDetalhes/${item.id}`); // Vai para a página de Kit
+    } else {
+      navigate(`/produto/${item.id}`); // Vai para a página de Produto
+    }
   };
 
   // Limpar tudo
@@ -281,7 +289,8 @@ export default function Pesquisa() {
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.02)"}
               onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-              onClick={() => handleAlugar(p.id)}
+              // AQUI MUDOU: Passamos o objeto 'p' inteiro
+              onClick={() => handleAlugar(p)}
             >
               <div>
                 <img
@@ -308,9 +317,10 @@ export default function Pesquisa() {
                   {p.preco_formatado || `R$ ${p.preco}`}
                 </p>
                 <button
+                  // AQUI MUDOU: Passamos o objeto 'p' inteiro
                   onClick={(e) => {
                     e.stopPropagation(); // Evita abrir o detalhe duas vezes
-                    handleAlugar(p.id);
+                    handleAlugar(p);
                   }}
                   style={{
                     backgroundColor: "#899662",
