@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from contas.models import UserAdmin
+from contas.models import UserAdmin, Evento, Contato, Funcionamento
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -149,3 +149,18 @@ class AdminProfileSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+class EventoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Evento
+        fields = ["id", "nome"]
+
+class ContatoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contato
+        fields = ["email", "telefone"]
+
+class FuncionamentoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Funcionamento
+        fields = ["dia", "horario"]

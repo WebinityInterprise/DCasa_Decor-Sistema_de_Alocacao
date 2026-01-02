@@ -7,6 +7,7 @@ from django.db import transaction
 import urllib.parse
 import random
 import string
+from urllib.parse import quote_plus
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, OpenApiExample
 
@@ -39,7 +40,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="detalhes")
     def detalhes(self, request):
         """
-        Recebe: {"itens": [{"id": "kit_1", "tipo": "kit", "original_id": 1, "quantidade": 1}, ...]}
+        Recebe: {"itens": [{"id": "kit_1", "tipo": "kit", "original_id": 1, "quantidade_estoque": 1}, ...]}
         """
         itens_local = request.data.get("itens", [])
         lista_formatada = []
@@ -48,7 +49,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
         for item in itens_local:
             tipo = item.get("tipo")
             orig_id = item.get("original_id")
-            quantidade = int(item.get("quantidade", 1))
+            quantidade_estoque = int(item.get("quantidade_estoque", 1))
 
             try:
                 if tipo == "kit":
@@ -57,7 +58,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
                     obj = Produto.objects.get(id=orig_id)
 
                 preco = float(obj.preco)
-                subtotal = preco * quantidade
+                subtotal = preco * quantidade_estoque
                 total_geral += subtotal
                 
                 img_url = request.build_absolute_uri(obj.imagem.url) if obj.imagem else ""
@@ -69,7 +70,7 @@ class CarrinhoViewSet(viewsets.ViewSet):
                     "codigo": obj.codigo,
                     "nome": obj.nome,
                     "imagem": img_url,
-                    "quantidade": quantidade,
+                    "quantidade": quantidade_estoque,
                     "preco_unitario": preco,
                     "subtotal": subtotal,
                     # Devolvemos as datas para manter o estado no front
@@ -113,7 +114,6 @@ class CarrinhoViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # Itens vêm diretamente do body enviados pelo React
         itens_carrinho = request.data.get("itens", [])
 
         if not itens_carrinho:
@@ -146,46 +146,66 @@ class CarrinhoViewSet(viewsets.ViewSet):
             hora_evento=data.get("hora_evento")
         )
 
-        # 3. Processar Itens (Produtos e Kits)
+        # 3. Processar Itens
         for item in itens_carrinho:
             orig_id = item.get("original_id")
-            qtd_item = int(item.get("quantidade", 1))
+            
+            # No carrinho do Front pode vir como 'quantidade' ou 'quantidade_estoque'
+            # Vamos garantir que pegamos o valor certo
+            qtd_carrinho = int(item.get("quantidade", item.get("quantidade_estoque", 1)))
 
             if item.get("tipo") == "kit":
                 kit = get_object_or_404(Kit, id=orig_id)
-                # Baixa estoque dos itens dentro do kit
-                for produto_kit in kit.produtos.all():
-                    if produto_kit.quantidade < qtd_item:
-                        raise serializers.ValidationError(f"Estoque insuficiente para {produto_kit.nome}")
+                
+                for item_do_kit in kit.itens.all():
+                    produto_real = item_do_kit.produto
+                    
+                    qtd_total_baixar = item_do_kit.quantidade * qtd_carrinho
+
+                    # Verifica estoque (No Produto é 'quantidade_estoque')
+                    if produto_real.quantidade_estoque < qtd_total_baixar:
+                        raise serializers.ValidationError(f"Estoque insuficiente para {produto_real.nome}")
+                    
+        
                     
                     ItemPedido.objects.create(
                         pedido=pedido,
-                        produto=produto_kit,
-                        quantidade=qtd_item,
-                        preco_unitario=produto_kit.preco
+                        produto=produto_real,
+                        quantidade_estoque=qtd_total_baixar, 
+                        preco_unitario=produto_real.preco
                     )
-                    produto_kit.quantidade -= qtd_item
-                    produto_kit.save()
+                    
+                    # Baixa Estoque (No Produto é 'quantidade_estoque')
+                    produto_real.quantidade_estoque -= qtd_total_baixar
+                    produto_real.save()
+                    
+                    # Movimento de Estoque (Aqui é 'quantidade')
                     MovimentoEstoque.objects.create(
-                        produto=produto_kit, tipo="SAIDA", 
-                        quantidade=qtd_item, motivo=f"Pedido {pedido.token} (Kit {kit.nome})"
+                        produto=produto_real, tipo="SAIDA", 
+                        quantidade=qtd_total_baixar, motivo=f"Pedido {pedido.token} (Kit {kit.nome})"
                     )
             else:
                 produto = get_object_or_404(Produto, id=orig_id)
-                if produto.quantidade < qtd_item:
+                
+                # Verifica estoque
+                if produto.quantidade_estoque < qtd_carrinho:
                     raise serializers.ValidationError(f"Estoque insuficiente para {produto.nome}")
                 
+                # Cria ItemPedido
                 ItemPedido.objects.create(
                     pedido=pedido,
                     produto=produto,
-                    quantidade=qtd_item,
+                    quantidade_estoque=qtd_carrinho, # <--- CORRIGIDO AQUI
                     preco_unitario=produto.preco
                 )
-                produto.quantidade -= qtd_item
+                
+                # Baixa Estoque
+                produto.quantidade_estoque -= qtd_carrinho
                 produto.save()
+                
                 MovimentoEstoque.objects.create(
                     produto=produto, tipo="SAIDA", 
-                    quantidade=qtd_item, motivo=f"Pedido {pedido.token}"
+                    quantidade=qtd_carrinho, motivo=f"Pedido {pedido.token}"
                 )
 
         return Response(PedidoSerializer(pedido).data, status=status.HTTP_201_CREATED)
@@ -194,40 +214,44 @@ class CarrinhoViewSet(viewsets.ViewSet):
     def whatsapp(self, request, pk=None):
         pedido = get_object_or_404(Pedido, pk=pk)
         cliente = pedido.cliente
-        
-        # Formatação das datas para o padrão brasileiro (DD/MM/AAAA)
+
         data_evento = pedido.data_evento.strftime('%d/%m/%Y') if pedido.data_evento else "Não informada"
         data_retirada = pedido.data_retirada.strftime('%d/%m/%Y') if pedido.data_retirada else "N/A"
         data_devolucao = pedido.data_devolucao.strftime('%d/%m/%Y') if pedido.data_devolucao else "N/A"
 
-        # Tradução do tipo de entrega para o texto da mensagem
         tipo_entrega_txt = "Retirada na Loja" if pedido.tipo_entrega == "RETIRADA" else "Entrega no Endereço"
 
-        # Montagem da mensagem formatada
-        texto = f"*Novo Pedido #{pedido.token}*\n\n"
-        texto += f"👤 *Cliente:* {cliente.nome}\n"
-        texto += f"📞 *Telefone:* {cliente.telefone}\n\n"
-        texto += f"🚚 *entega:* {pedido.tipo_entrega}\n"
-        texto += f"🗓️ *Período de Aluguel:*\n"
-        texto += f"📅 Retirada: {data_retirada}\n"
-        texto += f"📅 Devolução: {data_devolucao}\n\n"
-        
-        texto += f"📍 *Evento:* {data_evento}\n"
-        texto += f"🚚 *Opção:* {tipo_entrega_txt}\n"
-        
-        # Se for entrega, você pode opcionalmente adicionar o bairro/cidade aqui
+        texto = (
+            f"* Novo Pedido #{pedido.token}*\n\n"
+            f" *Cliente:* {cliente.nome}\n"
+            f" *Telefone:* {cliente.telefone}\n\n"
+            f" *Entrega:* {tipo_entrega_txt}\n\n"
+            f" *Período de Aluguel:*\n"
+            f" Retirada: {data_retirada}\n"
+            f" Devolução: {data_devolucao}\n\n"
+            f" *Evento:* {data_evento}\n"
+        )
+
         if pedido.tipo_entrega == "ENTREGA":
-            texto += f"🏠 *Bairro:* {cliente.bairro}\n"
-        
-        texto += "\n📦 *Itens:*\n"
+            texto += f" *Bairro:* {cliente.bairro}\n"
+
+        texto += "\n *Itens Reservados:*\n"
+
+        itens_resumo = {}
         for item in pedido.itens.all():
-            # Verifica se o produto existe para evitar erros
-            nome_prod = item.produto.nome if item.produto else "Item"
-            texto += f"- {item.quantidade}x {nome_prod}\n"
-        
-        texto += f"\n💰 *Total Estimado: R$ {pedido.total:.2f}*"
-        
-        # Codifica o texto para ser usado em uma URL
-        url = f"https://wa.me/{settings.WHATSAPP_NUMERO}?text={urllib.parse.quote(texto)}"
-        
+            nome = item.produto.nome if item.produto else "Item desconhecido"
+            itens_resumo[nome] = itens_resumo.get(nome, 0) + item.quantidade_estoque
+
+        for nome, qtd in itens_resumo.items():
+            texto += f"• {qtd}x {nome}\n"
+
+        valor_total = sum(
+            item.preco_unitario * item.quantidade_estoque
+            for item in pedido.itens.all()
+        )
+
+        texto += f"\n *Total Estimado: R$ {valor_total:.2f}*"
+
+        url = f"https://wa.me/{settings.WHATSAPP_NUMERO}?text={quote_plus(texto, encoding='utf-8')}"
+
         return Response({"whatsapp_url": url})

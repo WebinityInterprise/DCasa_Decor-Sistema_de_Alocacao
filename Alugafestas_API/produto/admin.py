@@ -1,72 +1,36 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from .models import Categoria, Produto, Kit, ImagemProduto
+from .models import Categoria, Produto, ImagemProduto, Kit, KitItem
 
-# Miniatura de imagem reutilizável
-def imagem_miniatura(obj):
-    if obj.imagem:
-        return format_html('<img src="{}" width="50" style="object-fit: cover;"/>', obj.imagem.url)
-    return "-"
-imagem_miniatura.short_description = 'Imagem'
-
-# -------------------------------
-# Categoria Admin
-# -------------------------------
-@admin.register(Categoria)
-class CategoriaAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'destaque', 'imagem_miniatura')
-    list_filter = ('destaque',)
-    search_fields = ('nome', 'descricao')
-    readonly_fields = ('imagem_miniatura',)
-
-    def imagem_miniatura(self, obj):
-        return format_html('<img src="{}" width="50" style="object-fit: cover;"/>', obj.imagem.url) if obj.imagem else "-"
-    imagem_miniatura.short_description = 'Imagem'
-
-# -------------------------------
-# Produto Admin
-# -------------------------------
-@admin.register(Produto)
-class ProdutoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'categoria', 'preco_formatado', 'disponivel', 'destaque', 'imagem_miniatura', 'quantidade')
-    list_filter = ('categoria', 'disponivel', 'destaque')
-    search_fields = ('nome', 'descricao')
-    readonly_fields = ('imagem_miniatura',)
-
-    def imagem_miniatura(self, obj):
-        return format_html('<img src="{}" width="50" style="object-fit: cover;"/>', obj.imagem.url) if obj.imagem else "-"
-    imagem_miniatura.short_description = 'Imagem'
-
-# -------------------------------
-# Inline para Imagens Adicionais do Produto
-# -------------------------------
 class ImagemProdutoInline(admin.TabularInline):
     model = ImagemProduto
-    extra = 1  # Quantas linhas extras aparecerão
-    readonly_fields = ('preview',)
+    extra = 1
 
-    def preview(self, obj):
-        if obj.imagem:
-            return format_html('<img src="{}" width="50" style="object-fit: cover;"/>', obj.imagem.url)
-        return "-"
-    preview.short_description = 'Preview'
+class ProdutoAdmin(admin.ModelAdmin):
+    inlines = [ImagemProdutoInline]
+    list_display = ('nome', 'codigo', 'preco', 'quantidade_estoque', 'disponivel')
+    search_fields = ('nome', 'codigo')
+    list_filter = ('categoria', 'cor')
 
-# -------------------------------
-# Kit Admin
-# -------------------------------
-@admin.register(Kit)
+# --- CONFIGURAÇÃO PARA O KIT ---
+class KitItemInline(admin.TabularInline):
+    model = KitItem
+    extra = 1
+    autocomplete_fields = ['produto'] # Útil se tiver muitos produtos (precisa configurar search_fields no ProdutoAdmin)
+
 class KitAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'categoria', 'preco_formatado', 'destaque', 'imagem_miniatura', 'listar_produtos')
-    list_filter = ('categoria', 'destaque')
-    search_fields = ('nome', 'descricao', 'produtos__nome')
-    readonly_fields = ('imagem_miniatura',)
-    filter_horizontal = ('produtos',)  # Torna a seleção de produtos amigável no admin
-    inlines = []  # Aqui poderia colocar inlines adicionais se quiser
+    inlines = [KitItemInline] # Permite editar quantidades dentro do Kit
+    list_display = ('nome', 'codigo', 'preco_formatado', 'destaque')
+    search_fields = ('nome', 'codigo')
+    
+    # Adiciona uma ação para recalcular preços em massa selecionando na lista
+    actions = ['recalcular_precos']
 
-    def imagem_miniatura(self, obj):
-        return format_html('<img src="{}" width="50" style="object-fit: cover;"/>', obj.imagem.url) if obj.imagem else "-"
-    imagem_miniatura.short_description = 'Imagem'
+    def recalcular_precos(self, request, queryset):
+        for kit in queryset:
+            kit.atualizar_preco_total()
+        self.message_user(request, "Preços recalculados com sucesso!")
+    recalcular_precos.short_description = "Recalcular preço baseado nos itens"
 
-    def listar_produtos(self, obj):
-        return ", ".join([p.nome for p in obj.produtos.all()])
-    listar_produtos.short_description = 'Produtos'
+admin.site.register(Categoria)
+admin.site.register(Produto, ProdutoAdmin)
+admin.site.register(Kit, KitAdmin)
