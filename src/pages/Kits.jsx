@@ -9,6 +9,7 @@ export default function Kits() {
   // URL base do arquivo .env
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  // --- BUSCAR KITS DO BACKEND (GET continua normal) ---
   useEffect(() => {
     const fetchKits = async () => {
       try {
@@ -20,9 +21,6 @@ export default function Kits() {
 
         const data = await response.json();
 
-        // --- CORREÇÃO AQUI ---
-        // Se a API retornar paginado (com 'results'), pegamos o results.
-        // Se retornar direto (lista), pegamos o data.
         if (data.results) {
             setKits(data.results);
         } else {
@@ -43,29 +41,47 @@ export default function Kits() {
     navigate(`/KitDetalhes/${kitId}`); 
   };
 
-  const handleAlugarClick = async (kitId) => {
-    try {
-      const response = await fetch(`${apiUrl}/pedido/carrinho/${kitId}/adicionar-kit/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          quantidade: 1 
-        }),
-      });
+  // --- NOVA FUNÇÃO DE ALUGAR (VIA LOCALSTORAGE) ---
+  const handleAlugarClick = (kit) => {
+    // Como estamos na lista, não temos as datas selecionadas.
+    // Vamos adicionar com datas vazias ou você pode redirecionar para Detalhes.
+    
+    // Objeto do item para o carrinho
+    const novoItem = {
+      id: `kit_${kit.id}`,
+      tipo: "kit",
+      original_id: kit.id,
+      quantidade: 1,
+      // Passamos vazio pois não tem seletor de data na listagem
+      data_retirada: "", 
+      data_devolucao: "",
+      tipo_entrega: "RETIRADA", // Padrão
+      // É bom salvar dados visuais para o carrinho não precisar buscar na API de novo
+      nome: kit.nome,
+      preco: kit.preco,
+      preco_formatado: kit.preco_formatado,
+      imagem: kit.imagem 
+    };
 
-      const data = await response.json();
+    // 1. Pegar o carrinho atual
+    const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho") || "[]");
 
-      if (response.ok) {
-        navigate("/Carrinho");
-      } else {
-        alert(data.error || "Não foi possível adicionar o kit ao carrinho.");
-      }
-    } catch (error) {
-      console.error("Erro ao adicionar ao carrinho:", error);
-      alert("Erro de conexão. Tente novamente.");
+    // 2. Verificar se já existe
+    const index = carrinhoAtual.findIndex((item) => item.id === novoItem.id);
+
+    if (index > -1) {
+      // Se já existe, atualiza (opcional: ou avisa que já está lá)
+      carrinhoAtual[index] = { ...carrinhoAtual[index], ...novoItem };
+    } else {
+      // Adiciona novo
+      carrinhoAtual.push(novoItem);
     }
+
+    // 3. Salvar
+    localStorage.setItem("carrinho", JSON.stringify(carrinhoAtual));
+
+    // 4. Navegar
+    navigate("/Carrinho");
   };
 
   if (loading) {
@@ -215,7 +231,8 @@ export default function Kits() {
             </p>
 
             <button
-              onClick={() => handleAlugarClick(kit.id)}
+              /* ATUALIZADO: Passa o objeto 'kit' inteiro para a função */
+              onClick={() => handleAlugarClick(kit)}
               style={{
                 backgroundColor: "#899662",
                 color: "#fff",

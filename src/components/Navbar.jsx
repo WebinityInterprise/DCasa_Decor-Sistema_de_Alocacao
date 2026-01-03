@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+// 1. IMPORTANTE: Importe o Link aqui junto com o useNavigate
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -104,11 +105,15 @@ export default function Navbar() {
           {/* Menu Desktop */}
           {!isMobile && (
             <div style={{ display: "flex", gap: "20px" }}>
-              <a href="/MeusPedidos" style={{ textDecoration: "none", color: "#333" }}>
+              {/* 2. CORREÇÃO: Usar Link to=... em vez de a href=... */}
+              <Link 
+                to="/MeusPedidos" 
+                style={{ textDecoration: "none", color: "#333" }}
+              >
                 Meus Pedidos
-              </a>
-              <a
-                href="/Carrinho"
+              </Link>
+              <Link
+                to="/Carrinho"
                 style={{
                   textDecoration: "none",
                   color: "#333",
@@ -118,7 +123,7 @@ export default function Navbar() {
                 }}
               >
                 <FiShoppingCart /> Carrinho(0)
-              </a>
+              </Link>
             </div>
           )}
 
@@ -148,28 +153,33 @@ export default function Navbar() {
               borderRadius: "0 0 6px 6px",
             }}
           >
-            <a
-              href="#"
+            {/* 3. CORREÇÃO: Usar Link e fechar menu ao clicar */}
+            <Link
+              to="/MeusPedidos"
+              onClick={() => setMenuOpen(false)} // Fecha o menu ao clicar
               style={{
                 padding: "12px 20px",
                 borderBottom: "1px solid #eee",
                 color: "#333",
+                textDecoration: "none"
               }}
             >
               Meus Pedidos
-            </a>
-            <a
-              href="/Carrinho"
+            </Link>
+            <Link
+              to="/Carrinho"
+              onClick={() => setMenuOpen(false)} // Fecha o menu ao clicar
               style={{
                 padding: "12px 20px",
                 color: "#333",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
+                textDecoration: "none"
               }}
             >
               <FiShoppingCart /> Carrinho(0)
-            </a>
+            </Link>
           </div>
         )}
       </div>

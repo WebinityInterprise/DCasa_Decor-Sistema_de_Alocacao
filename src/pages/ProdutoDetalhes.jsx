@@ -10,7 +10,7 @@ export default function ProdutoDetalhes() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 900);
   const [loading, setLoading] = useState(true);
 
-  // --- ESTADOS DO FORMULÁRIO (Igual ao Kit) ---
+  // --- ESTADOS DO FORMULÁRIO ---
   const [dataRetirada, setDataRetirada] = useState("");
   const [dataDevolucao, setDataDevolucao] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("RETIRADA");
@@ -23,7 +23,7 @@ export default function ProdutoDetalhes() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 1. BUSCAR DETALHES DO PRODUTO
+  // 1. BUSCAR DETALHES DO PRODUTO E ORGANIZAR IMAGENS
   useEffect(() => {
     const fetchProduto = async () => {
       try {
@@ -35,15 +35,29 @@ export default function ProdutoDetalhes() {
 
         const data = await response.json();
 
-        // Organiza imagens para o carrossel
-        let imgs = [];
-        if (data.imagens_carrossel && data.imagens_carrossel.length > 0) {
-          imgs = data.imagens_carrossel.map((item) => item.imagem);
-        } else if (data.imagem) {
-          imgs = [data.imagem];
+        // --- LÓGICA DO CARROSSEL ---
+        // Cria uma lista única com a imagem principal (capa) + imagens da galeria
+        let listaImagens = [];
+
+        // 1. Adiciona a imagem principal primeiro
+        if (data.imagem) {
+            listaImagens.push(data.imagem);
         }
 
-        setProduto({ ...data, imagensLista: imgs });
+        // 2. Adiciona as imagens extras do carrossel (se houver)
+        if (data.imagens_carrossel && Array.isArray(data.imagens_carrossel)) {
+            const extras = data.imagens_carrossel.map((item) => item.imagem);
+            listaImagens = [...listaImagens, ...extras];
+        }
+
+        // Se não tiver nenhuma imagem, coloca um placeholder
+        if (listaImagens.length === 0) {
+            listaImagens.push("/images/placeholder.jpg"); 
+        }
+
+        // Salva no estado com a nova propriedade 'imagensLista'
+        setProduto({ ...data, imagensLista: listaImagens });
+
       } catch (error) {
         console.error("Erro:", error);
       } finally {
@@ -67,41 +81,43 @@ export default function ProdutoDetalhes() {
       return;
     }
 
-    // Cria o objeto do item
+    // Cria o objeto do item para o carrinho
     const novoItem = {
-      id: `prod_${id}`, // Prefixo 'prod_' para diferenciar de kits
+      id: `prod_${id}`, // Prefixo 'prod_' para diferenciar de kits e eventos
       tipo: "produto",
       original_id: id,
-      quantidade: 1, // Começa com 1
+      quantidade: 1, // Começa com 1 unidade
       data_retirada: dataRetirada,
       data_devolucao: dataDevolucao,
       tipo_entrega: tipoEntrega,
-      // Opcional: Salvar dados visuais para exibir no carrinho sem fetch imediato
+      
+      // Dados visuais para exibir no carrinho imediatamente
       nome: produto.nome,
+      codigo: produto.codigo,
       preco: produto.preco,
-      imagem: produto.imagensLista[0]
+      imagem: produto.imagensLista[0] // Pega a primeira imagem da lista
     };
 
-    // 1. Pegar carrinho atual
+    // 1. Pegar carrinho atual do navegador ou criar um vazio
     const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho") || "[]");
 
-    // 2. Verificar duplicidade
+    // 2. Verificar duplicidade (se já tem esse produto com esse ID)
     const index = carrinhoAtual.findIndex((item) => item.id === novoItem.id);
 
     if (index > -1) {
-      // Se já existe, atualiza os dados de entrega/data (mantém ou incrementa qtde se preferir)
-      // Aqui estamos atualizando as preferências de data
+      // Se já existe, atualiza as datas/entrega (mantém a quantidade que já estava ou reseta, aqui optei por atualizar dados)
       carrinhoAtual[index] = { ...carrinhoAtual[index], ...novoItem };
     } else {
-      // Adiciona novo
+      // Se é novo, adiciona à lista
       carrinhoAtual.push(novoItem);
     }
 
-    // 3. Salvar e Navegar
+    // 3. Salvar de volta no LocalStorage e Navegar
     localStorage.setItem("carrinho", JSON.stringify(carrinhoAtual));
     navigate("/Carrinho");
   };
 
+  // Lógica para passar as fotos
   const mudarImagem = (direcao) => {
     if (!produto || !produto.imagensLista) return;
     const total = produto.imagensLista.length;
@@ -121,9 +137,11 @@ export default function ProdutoDetalhes() {
     <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px 24px", fontFamily: "'Arial', sans-serif", color: "#333" }}>
       <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "60px", alignItems: "start", marginTop: "20px" }}>
         
-        {/* --- COLUNA ESQUERDA: CARROSSEL --- */}
+        {/* --- COLUNA ESQUERDA: CARROSSEL DE IMAGENS --- */}
         <div style={{ width: "100%", maxWidth: "520px", margin: "0 auto", textAlign: "center" }}>
           <div style={{ position: "relative", width: "100%", borderRadius: "10px", overflow: "hidden", backgroundColor: "#fff", border: "1px solid #eee", display: "flex", justifyContent: "center", alignItems: "center", padding: "10px 0", minHeight: "300px" }}>
+            
+            {/* Imagem Atual */}
             {produto.imagensLista.length > 0 ? (
               <img
                 src={produto.imagensLista[imagemAtual]}
@@ -134,6 +152,7 @@ export default function ProdutoDetalhes() {
               <p>Sem imagem</p>
             )}
 
+            {/* Setas de Navegação (Só mostra se tiver mais de 1 foto) */}
             {produto.imagensLista.length > 1 && (
               <>
                 <button onClick={() => mudarImagem("left")} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", background: "#6B774D", color: "#fff", border: "none", borderRadius: "50%", width: "40px", height: "40px", cursor: "pointer", fontSize: "20px" }}>‹</button>
@@ -141,7 +160,10 @@ export default function ProdutoDetalhes() {
               </>
             )}
           </div>
-          <p style={{ marginTop: "10px", fontSize: "14px", color: "#666" }}>Visualizando: <strong>{produto.nome}</strong></p>
+          
+          <p style={{ marginTop: "10px", fontSize: "14px", color: "#666" }}>
+             Foto {imagemAtual + 1} de {produto.imagensLista.length}
+          </p>
         </div>
 
         {/* --- COLUNA DIREITA: INFORMAÇÕES E FORMULÁRIO --- */}
@@ -179,7 +201,7 @@ export default function ProdutoDetalhes() {
             </div>
             <div style={{ flex: "1 1 200px" }}>
               <p style={{ marginBottom: "6px", fontWeight: "600", color: "#555" }}>Data de Devolução</p>
-              <input type="date" value={dataDevolucao} onChange={(e) => setDataDevolucao(e.target.value)} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
+              <input type="date" value={dataDevolucao} onChange={(e) => setDataDevolucao(e.target.value)} min={dataRetirada} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
             </div>
           </div>
 

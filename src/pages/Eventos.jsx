@@ -1,133 +1,90 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const eventos = [
-  {
-    id: 1,
-    titulo: "ESTILO DO EVENTO",
-    imagens: [
-      "/images/Evento1.jpg","/images/Evento2.jpg","/images/Evento3.jpg","/images/Evento4.jpg",
-      "/images/Evento5.jpg","/images/Evento6.jpg","/images/Evento7.jpg","/images/Evento8.jpg",
-      "/images/Evento9.jpg","/images/Evento10.jpg"
-    ],
-  },
-  {
-    id: 2,
-    titulo: "ESTILO DO EVENTO",
-    imagens: [
-      "/images/Evento11.jpg","/images/Evento12.jpg","/images/Evento13.jpg","/images/Evento14.jpg",
-      "/images/Evento15.jpg","/images/Evento16.jpg","/images/Evento17.jpg","/images/Evento18.jpg",
-      "/images/Evento19.jpg","/images/Evento20.jpg"
-    ],
-  },
-  // Adicione outros eventos conforme necessário
-];
 
 export default function Eventos() {
   const navigate = useNavigate();
-  const [imagemAmpliada, setImagemAmpliada] = useState(null); 
-  const [indices, setIndices] = useState(eventos.map(() => 0)); // índice atual do carrossel por evento
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleImagemClick = (img) => setImagemAmpliada(img);
+  const apiUrl = import.meta.env.VITE_API_URL;
 
-  const handleFecharImagem = () => setImagemAmpliada(null);
+  // Busca eventos da API
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/produto/eventos/`);
+        if (!response.ok) throw new Error("Erro ao buscar eventos");
+        
+        const data = await response.json();
+        const listaEventos = data.results || data; // Trata paginação ou lista direta
 
-  const handleAlugarEvento = () => {
-    navigate("/KitDetalhes");
+        setEventos(listaEventos);
+      } catch (error) {
+        console.error("Erro:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEventos();
+  }, [apiUrl]);
+
+  const handleVerDetalhes = (id) => {
+    // Redireciona para a nova página de detalhes
+    navigate(`/evento/${id}`);
   };
 
-  const handleNext = (eventoIndex) => {
-    setIndices(prev => {
-      const newIndices = [...prev];
-      newIndices[eventoIndex] = (newIndices[eventoIndex] + 1) % eventos[eventoIndex].imagens.length;
-      return newIndices;
-    });
-  };
-
-  const handlePrev = (eventoIndex) => {
-    setIndices(prev => {
-      const newIndices = [...prev];
-      newIndices[eventoIndex] = (newIndices[eventoIndex] - 1 + eventos[eventoIndex].imagens.length) % eventos[eventoIndex].imagens.length;
-      return newIndices;
-    });
-  };
+  if (loading) return <div style={{ textAlign: "center", padding: "50px" }}>Carregando eventos...</div>;
 
   return (
-    <main style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 24px" }}>
+    <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
       <h1 style={{ textAlign: "center", fontSize: "28px", fontWeight: "700", marginBottom: "40px", color: "#2B3A21" }}>
-        EVENTOS
+        NOSSOS PACOTES DE EVENTOS
       </h1>
 
-      {eventos.map((evento, idx) => (
-        <section key={evento.id} style={{ marginBottom: "80px", textAlign: "center" }}>
-          {/* Subtítulo */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+      {eventos.map((evento) => (
+        <section key={evento.id} style={{ marginBottom: "80px", textAlign: "center", borderBottom: "1px solid #eee", paddingBottom: "40px" }}>
+          
+          {/* Título do Evento */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
             <span style={{ flex: 1, height: "1px", backgroundColor: "#899662", marginRight: "10px", maxWidth: "100px" }}></span>
-            <h2 style={{ fontSize: "18px", color: "#2B3A21", fontWeight: "600", whiteSpace: "nowrap" }}>
-              {evento.titulo}
+            <h2 style={{ fontSize: "22px", color: "#2B3A21", fontWeight: "600", textTransform: "uppercase" }}>
+              {evento.nome}
             </h2>
             <span style={{ flex: 1, height: "1px", backgroundColor: "#899662", marginLeft: "10px", maxWidth: "100px" }}></span>
           </div>
 
-          {/* Carrossel de imagens */}
-          <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "20px" }}>
-            <button
-              onClick={() => handlePrev(idx)}
-              style={{
-                position: "absolute",
-                left: "-40px",
-                zIndex: 1,
-                cursor: "pointer",
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: "#6B774D", // cor de fundo
-                color: "#fff", // cor do ícone
-                border: "none",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "20px",
-              }}
-            >
-              &#10094;
-            </button>
+          <p style={{ color: "#666", marginBottom: "20px", maxWidth: "600px", margin: "0 auto 20px" }}>
+            {evento.descricao} | Capacidade: <strong>{evento.capacidade_pessoas} pessoas</strong>
+          </p>
 
-            <img
-              src={evento.imagens[indices[idx]]}
-              alt={evento.titulo}
-              style={{ width: "80%", borderRadius: "8px", cursor: "pointer", objectFit: "cover" }}
-              onClick={() => handleImagemClick(evento.imagens[indices[idx]])}
+          {/* Imagem Principal do Evento */}
+          <div 
+            onClick={() => handleVerDetalhes(evento.id)}
+            style={{ 
+              cursor: "pointer", 
+              marginBottom: "20px", 
+              overflow: "hidden", 
+              borderRadius: "10px",
+              maxWidth: "600px",
+              margin: "0 auto 20px"
+            }}
+          >
+            <img 
+              src={evento.imagem || "/images/placeholder.jpg"} 
+              alt={evento.nome} 
+              style={{ width: "100%", height: "300px", objectFit: "cover", transition: "transform 0.3s" }}
+              onMouseOver={(e) => e.target.style.transform = "scale(1.05)"}
+              onMouseOut={(e) => e.target.style.transform = "scale(1)"}
             />
-
-            <button
-              onClick={() => handleNext(idx)}
-              style={{
-                position: "absolute",
-                right: "-40px",
-                zIndex: 1,
-                cursor: "pointer",
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: "#6B774D", // cor de fundo
-                color: "#fff", // cor do ícone
-                border: "none",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "20px",
-              }}
-            >
-              &#10095;
-            </button>
           </div>
 
-          {/* Botão ALUGAR EVENTO */}
+          <p style={{ fontSize: "24px", fontWeight: "bold", color: "#2B3A21", marginBottom: "15px" }}>
+            {evento.preco_formatado || `R$ ${evento.preco}`}
+          </p>
+
           <button
-            onClick={handleAlugarEvento}
+            onClick={() => handleVerDetalhes(evento.id)}
             style={{
               backgroundColor: "#899662",
               color: "#fff",
@@ -138,49 +95,14 @@ export default function Eventos() {
               fontWeight: "600",
               fontSize: "16px",
               transition: "all 0.2s",
-              width: "180px",
             }}
             onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#6e7b4f")}
             onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#899662")}
           >
-            ALUGAR EVENTO
+            VER DETALHES E ALUGAR
           </button>
         </section>
       ))}
-
-      {/* Modal de imagem ampliada */}
-      {imagemAmpliada && (
-        <div
-          onClick={handleFecharImagem}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.8)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 999,
-            cursor: "zoom-out",
-            padding: 0,
-          }}
-        >
-          <img
-            src={imagemAmpliada}
-            alt="Imagem ampliada"
-            style={{
-              width: "90vw",
-              height: "auto",
-              maxHeight: "90vh",
-              borderRadius: "10px",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.8)",
-              objectFit: "contain",
-            }}
-          />
-        </div>
-      )}
     </main>
   );
 }

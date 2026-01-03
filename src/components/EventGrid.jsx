@@ -1,27 +1,53 @@
-import React from "react";
-import { useNavigate } from "react-router-dom"; // importa o hook para navegação
-
-const events = [
-  { img: "/images/event1.jpg", name: "Estilo de Evento", price: "R$ 1.500,00" },
-  { img: "/images/event2.jpg", name: "Estilo de Evento", price: "R$ 1.500,00" },
-  { img: "/images/event3.jpg", name: "Estilo de Evento", price: "R$ 1.500,00" },
-  { img: "/images/event4.jpg", name: "Estilo de Evento", price: "R$ 1.500,00" },
-  { img: "/images/event1.jpg", name: "Estilo de Evento", price: "R$ 1.500,00" },
-];
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function EventGrid() {
-  const navigate = useNavigate(); // inicializa a navegação
+  const navigate = useNavigate();
+  const [eventos, setEventos] = useState([]);
+  
+  // Pega a URL do .env
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    const fetchEventosDestaque = async () => {
+      try {
+        // Busca apenas os eventos marcados como DESTAQUE no Django
+        const response = await fetch(`${apiUrl}/produto/eventos/?destaque=true`);
+        
+        if (!response.ok) throw new Error("Erro ao buscar eventos");
+
+        const data = await response.json();
+        
+        // Garante que pegamos a lista correta (seja paginada ou direta)
+        const lista = data.results || data;
+        
+        // Pega no máximo 5 ou 10 para manter o layout bonito (opcional)
+        setEventos(lista);
+      } catch (error) {
+        console.error("Erro:", error);
+      }
+    };
+
+    fetchEventosDestaque();
+  }, [apiUrl]);
 
   const handleVejaMais = () => {
-    navigate("/Eventos"); // redireciona para a página /Eventos
+    navigate("/Eventos");
   };
+
+  const handleCardClick = (id) => {
+    navigate(`/evento/${id}`); // Redireciona para a página de detalhes que criamos
+  };
+
+  // Se não houver eventos destaque carregados ainda, pode retornar null ou um loading simples
+  if (eventos.length === 0) return null; 
 
   return (
     <div className="container">
-      {/* Título estilizado */}
+      {/* Título estilizado (Mantido igual) */}
       <h2 className="event-title">
         <span>
-          EVENTOS
+          EVENTOS EM DESTAQUE
           <span className="event-title-line"></span>
         </span>
       </h2>
@@ -33,9 +59,10 @@ export default function EventGrid() {
           gap: "40px",
         }}
       >
-        {events.map((event, idx) => (
+        {eventos.map((event) => (
           <div
-            key={idx}
+            key={event.id}
+            onClick={() => handleCardClick(event.id)}
             style={{
               border: "1px solid #ccc",
               borderRadius: "5px",
@@ -43,6 +70,7 @@ export default function EventGrid() {
               padding: "10px",
               transition: "transform 0.3s",
               cursor: "pointer",
+              backgroundColor: "#fff" // Garante fundo branco
             }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.transform = "scale(1.05)")
@@ -52,20 +80,20 @@ export default function EventGrid() {
             }
           >
             <img
-              src={event.img}
-              alt={event.name}
+              src={event.imagem || "/images/placeholder.jpg"}
+              alt={event.nome}
               style={{
                 width: "100%",
-                height: "150px",
+                height: "150px", // Mantido o tamanho exato do seu exemplo
                 objectFit: "cover",
                 borderRadius: "5px",
               }}
             />
             <h4 style={{ margin: "15px 0 5px", color: "#3F471C" }}>
-              {event.name}
+              {event.nome}
             </h4>
             <p style={{ margin: "0 0 15px", fontWeight: "600" }}>
-              {event.price}
+              {event.preco_formatado || `R$ ${event.preco}`}
             </p>
             <button className="green">Ver mais</button>
           </div>
