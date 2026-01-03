@@ -76,10 +76,10 @@ class ItemPedido(models.Model):
 
     @property
     def subtotal(self):
-        return self.preco_unitario * self.quantidade
+        return self.preco_unitario * self.quantidade_estoque
 
     def __str__(self):
-        return f"{self.produto} x {self.quantidade}"
+        return f"{self.produto} x {self.quantidade_estoque}"
 
 
 # ==========================

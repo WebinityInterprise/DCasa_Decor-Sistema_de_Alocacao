@@ -29,31 +29,59 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
         return None
 
 # --- Serializer de Criação (Mantido igual) ---
+class ItemPedidoSerializer(serializers.ModelSerializer):
+    produto_nome = serializers.ReadOnlyField(source='produto.nome')
+    produto_imagem = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ItemPedido
+        # O campo no banco é 'quantidade_estoque', então usamos ele aqui
+        fields = [
+            'id', 'produto', 'produto_nome', 'produto_imagem', 
+            'quantidade_estoque', 'preco_unitario', 'subtotal'
+        ]
+
+    def get_produto_imagem(self, obj):
+        request = self.context.get('request')
+        if obj.produto and obj.produto.imagem:
+            if request:
+                return request.build_absolute_uri(obj.produto.imagem.url)
+            return obj.produto.imagem.url
+        return None
+
+# --- Serializer de Criação (Checkout) ---
 class PedidoCreateSerializer(serializers.Serializer):
-    # Dados do Cliente
+    # Cliente
     nome = serializers.CharField(max_length=150)
     email = serializers.EmailField(required=False, allow_blank=True)
     telefone = serializers.CharField(max_length=20)
     
-    # Endereço
-    endereco = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    numero = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    bairro = serializers.CharField(max_length=100, required=False, allow_blank=True)
-    cidade = serializers.CharField(max_length=100, required=False, allow_blank=True)
-    estado = serializers.CharField(max_length=2, default="SP")
-    cep = serializers.CharField(max_length=15, required=False, allow_blank=True)
+    # Endereço (Opcional se for retirada)
+    endereco = serializers.CharField(required=False, allow_blank=True, default="")
+    numero = serializers.CharField(required=False, allow_blank=True, default="")
+    bairro = serializers.CharField(required=False, allow_blank=True, default="")
+    cidade = serializers.CharField(required=False, allow_blank=True, default="")
+    estado = serializers.CharField(required=False, allow_blank=True, default="SP")
+    cep = serializers.CharField(required=False, allow_blank=True, default="")
     
-    # Dados do Evento
+    # Evento (Opcional)
     data_evento = serializers.DateField(required=False, allow_null=True)
     hora_evento = serializers.TimeField(required=False, allow_null=True)
 
-    # Dados do Aluguel
+    # Aluguel
     tipo_entrega = serializers.ChoiceField(choices=["RETIRADA", "ENTREGA"], default="RETIRADA")
     data_retirada = serializers.DateField(required=True)
     data_devolucao = serializers.DateField(required=True)
 
-    # Lista de produtos vinda do React
+    # Itens (Aqui recebe Kits, Produtos E EVENTOS misturados)
     itens = serializers.JSONField(required=True)
+
+    # Validação extra para limpar datas vazias
+    def validate_data_evento(self, value):
+        return value if value else None
+
+    def validate_hora_evento(self, value):
+        return value if value else None
 
 # --- Serializers Auxiliares ---
 class CarrinhoItemSerializer(serializers.Serializer):

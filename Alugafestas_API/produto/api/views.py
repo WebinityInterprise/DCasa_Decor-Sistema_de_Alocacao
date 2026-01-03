@@ -7,8 +7,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from itertools import chain
 
 # Importe seus models e serializers
-from produto.models import Categoria, Produto, Kit
-from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer
+from produto.models import Categoria, Produto, Kit, Evento, EventoItem
+from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer, EventoSerializer, EventoItemSerializer
 
 # --- Paginação Personalizada ---
 class StandardResultsSetPagination(PageNumberPagination):
@@ -155,3 +155,20 @@ class KitViewSet(viewsets.ModelViewSet):
         if destaque == 'true':
             queryset = queryset.filter(destaque=True)
         return queryset
+    
+
+@extend_schema(tags=['Eventos'])
+class EventoViewSet(viewsets.ModelViewSet):
+    queryset = Evento.objects.prefetch_related('itens_evento__produto__imagens_carrossel', 'itens_evento__produto').order_by('-id')
+    serializer_class = EventoSerializer
+    pagination_class = StandardResultsSetPagination
+    # GET é público. POST, PUT, DELETE exige login.
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.query_params.get('destaque') == 'true':
+            qs = qs.filter(destaque=True)
+        if tipo := self.request.query_params.get('tipo'):
+            qs = qs.filter(tipo__iexact=tipo)
+        return qs

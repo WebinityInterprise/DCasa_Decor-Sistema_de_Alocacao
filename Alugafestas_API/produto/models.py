@@ -118,3 +118,64 @@ class KitItem(models.Model):
         super().save(*args, **kwargs)
         # Atualiza o preço do kit pai automaticamente ao salvar um item
         # self.kit.atualizar_preco_total()
+        
+        
+class Evento(models.Model):
+    TIPO_EVENTO = [
+        ('casamento', 'Casamento'),
+        ('aniversario', 'Aniversário'),
+        ('corporativo', 'Corporativo'),
+        ('formatura', 'Formatura'),
+        ('outro', 'Outro'),
+    ]
+
+    codigo = models.CharField(max_length=20, unique=True, default=gerar_codigo_unico)
+    nome = models.CharField(max_length=150, help_text="Ex: Casamento Rústico Completo")
+    tipo = models.CharField(max_length=20, choices=TIPO_EVENTO, default='outro')
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição do Evento")
+    
+    imagem = models.ImageField(upload_to='eventos/', blank=True, null=True)
+    destaque = models.BooleanField(default=False)
+
+    # Diferencial para Eventos: Capacidade estimada
+    capacidade_pessoas = models.PositiveIntegerField(default=50, help_text="Capacidade estimada de convidados para este pacote")
+
+    # Relação ManyToMany com Produtos (mesma lógica do Kit)
+    produtos = models.ManyToManyField(Produto, through='EventoItem', related_name='eventos')
+
+    # Preço do Evento
+    preco = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Se deixar vazio, será a soma dos produtos.")
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_tipo_display()})"
+
+    @property
+    def preco_formatado(self):
+        val = self.preco if self.preco else 0
+        return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    # Método para recalcular o preço total baseado nos itens do evento
+    def atualizar_preco_total(self):
+        total = self.itens_evento.aggregate(
+            total=Sum(F('quantidade') * F('produto__preco'))
+        )['total'] or 0
+        self.preco = total
+        self.save()
+        
+class EventoItem(models.Model):
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name='itens_evento')
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
+    quantidade = models.PositiveIntegerField(default=1, help_text="Quantidade necessária para este evento")
+
+    class Meta:
+        unique_together = ('evento', 'produto')
+        verbose_name = "Item do Evento"
+        verbose_name_plural = "Itens do Evento"
+
+    def __str__(self):
+        return f"{self.quantidade}x {self.produto.nome} em {self.evento.nome}"
+
+    # Atualiza o preço do Evento pai automaticamente ao salvar um item
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.evento.atualizar_preco_total()

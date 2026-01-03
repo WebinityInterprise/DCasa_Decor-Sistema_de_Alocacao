@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from produto.models import Categoria, Produto, Kit, ImagemProduto, KitItem
+from produto.models import Categoria, Produto, Kit, ImagemProduto, KitItem, Evento, EventoItem
 from django.db import transaction
 
 # --- Serializer para as imagens extras ---
@@ -88,4 +88,27 @@ class KitSerializer(serializers.ModelSerializer):
             'categoria',
             'categoria_id',
             'produtos', 
+        ]
+        
+        
+class EventoItemSerializer(serializers.ModelSerializer):
+    produto_detalhes = ProdutoSerializer(source='produto', read_only=True)
+    produto_id = serializers.PrimaryKeyRelatedField(queryset=Produto.objects.all(), source='produto', write_only=True)
+
+    class Meta:
+        model = EventoItem
+        fields = ['id', 'produto_id', 'produto_detalhes', 'quantidade']
+
+# --- EVENTO ---
+class EventoSerializer(serializers.ModelSerializer):
+    itens_evento = EventoItemSerializer(many=True, read_only=True)
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+    preco_formatado = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Evento
+        fields = [
+            'id', 'codigo', 'nome', 'tipo', 'tipo_display', 'descricao',
+            'imagem', 'destaque', 'capacidade_pessoas', 
+            'preco', 'preco_formatado', 'itens_evento'
         ]
