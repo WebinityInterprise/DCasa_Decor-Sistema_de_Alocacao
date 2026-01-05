@@ -41,7 +41,7 @@ export default function Navbar() {
         {/* Conteúdo centralizado em 80% */}
         <nav
           style={{
-            width: "80%",
+            width: "90%",
             margin: "0 auto",
             display: "flex",
             justifyContent: "space-between",
@@ -59,7 +59,7 @@ export default function Navbar() {
               padding: 0,
             }}
           >
-            <img src="/images/logo2.png" alt="Logo" style={{ height: "75px" }} />
+            <img src="/images/logo2.png" alt="Logo" style={{ height: "50px" }} />
           </button>
 
           {/* Barra de pesquisa */}
@@ -78,10 +78,10 @@ export default function Navbar() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                width: "77%",
+                width: "90%",
                 height: "50px",
                 padding: "0 15px",
-                borderRadius: "5px",
+                borderRadius: "15px",
                 border: "1px solid #ccc",
                 fontSize: "16px",
               }}
@@ -90,7 +90,7 @@ export default function Navbar() {
               type="submit"
               style={{
                 position: "absolute",
-                right: "calc(20% + 10px)",
+                right: "calc(2%)",
                 top: "50%",
                 transform: "translateY(-50%)",
                 border: "none",

@@ -49,7 +49,7 @@ export default function FeaturedGrid() {
         <div className="container">
             <h2 className="event-title">
                 <span>
-                    DESTAQUES
+                    KIT EM DESTAQUES
                     <span className="event-title-line"></span>
                 </span>
             </h2>
@@ -125,6 +125,8 @@ export default function FeaturedGrid() {
                     Veja mais itens
                 </button>
             </div>
+
+            <div style={{ backgroundColor: "#6b7b44", height: "1px", marginTop: "40px", marginBottom: "20px" }}></div>
         </div>
     );
 }

@@ -114,11 +114,26 @@ export default function KitDetalhes() {
   return (
     <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "5px 24px", fontFamily: "'Arial', sans-serif", color: "#333" }}>
       <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "30px" : "60px", alignItems: "start", marginTop: "20px" }}>
+
+        {isMobile && (
+          <h1
+            style={{
+              fontSize: "25px",
+              fontWeight: "700",
+              color: "#2B3A21",
+              textAlign: "left",
+              marginBottom: "-20px",
+            }}
+          >
+            {kitData.nome}
+          </h1>
+        )}
+
         {/* CARROSSEL */}
         <div style={{ width: "100%", maxWidth: "520px", margin: "0 auto", textAlign: "center" }}>
           <div style={{ position: "relative", width: "100%", borderRadius: "10px", overflow: "hidden", backgroundColor: "#fff", border: "1px solid #eee", display: "flex", justifyContent: "center", alignItems: "center", padding: "10px 0", minHeight: "300px" }}>
             {produtoSelecionado?.imagensCarrossel?.length > 0 ? (
-              <img src={produtoSelecionado.imagensCarrossel[imagemAtual]} alt={produtoSelecionado.nome} style={{ width: isMobile ? "90%" : "70%", maxHeight: "400px", objectFit: "contain" }} />
+              <img src={produtoSelecionado.imagensCarrossel[imagemAtual]} alt={produtoSelecionado.nome} style={{ width: isMobile ? "90%" : "70%", maxHeight: "500px", objectFit: "contain" }} />
             ) : (
               <p>Sem Imagem</p>
             )}
@@ -134,7 +149,22 @@ export default function KitDetalhes() {
 
         {/* INFO */}
         <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#2B3A21", margin: 0 }}>{kitData.nome}</h1>
+          {!isMobile && (
+            <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#2B3A21", margin: 0 }}>
+              {kitData.nome}
+            </h1>
+          )}
+
+          <p
+            style={{
+              fontSize: "32px",
+              fontWeight: "700",
+              color: "#2B3A21",
+              margin: "0 0 5px 0",
+            }}
+          >
+            {kitData.preco_formatado || `R$ ${kitData.preco}`}
+          </p>
 
           <div style={{ display: "flex", alignItems: "center" }}>
             <span style={{ background: "#899662", color: "#fff", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}>Código: {kitData.codigo}</span>
@@ -156,18 +186,42 @@ export default function KitDetalhes() {
           </div>
 
           {/* --- DATAS --- */}
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+          <div style={{display: "flex", gap: "16px", flexWrap: "wrap",}}>
             <div style={{ flex: "1 1 200px" }}>
               <p style={{ marginBottom: "6px", fontWeight: "600", color: "#555" }}>Data de Retirada</p>
-              <input type="date" value={dataRetirada} onChange={(e) => setDataRetirada(e.target.value)} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
+              <input
+                type="date"
+                value={dataRetirada}
+                onChange={(e) => setDataRetirada(e.target.value)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #ccc",
+                  width: "100%",
+                  maxWidth: "180px",
+                  fontFamily: "inherit",
+                }}
+              />
             </div>
             <div style={{ flex: "1 1 200px" }}>
               <p style={{ marginBottom: "6px", fontWeight: "600", color: "#555" }}>Data de Devolução</p>
-              <input type="date" value={dataDevolucao} onChange={(e) => setDataDevolucao(e.target.value)} style={{ padding: "10px", borderRadius: "8px", border: "1px solid #ccc", width: "100%", fontFamily: "inherit" }} />
+              <input
+                type="date"
+                value={dataDevolucao}
+                onChange={(e) => setDataDevolucao(e.target.value)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #ccc",
+                  width: "100%",
+                  maxWidth: "180px",
+                  fontFamily: "inherit",
+                  marginLeft: "10px",
+                  marginRight: "10px",
+                }}
+              />
             </div>
           </div>
-
-          <p style={{ fontSize: "32px", fontWeight: "700", color: "#2B3A21", marginTop: "10px" }}>{kitData.preco_formatado || `R$ ${kitData.preco}`}</p>
 
           <button
             onClick={handleRentClick}

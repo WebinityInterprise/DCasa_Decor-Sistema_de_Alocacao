@@ -11,17 +11,12 @@ export default function EventGrid() {
   useEffect(() => {
     const fetchEventosDestaque = async () => {
       try {
-        // Busca apenas os eventos marcados como DESTAQUE no Django
         const response = await fetch(`${apiUrl}/produto/eventos/?destaque=true`);
         
         if (!response.ok) throw new Error("Erro ao buscar eventos");
 
         const data = await response.json();
-        
-        // Garante que pegamos a lista correta (seja paginada ou direta)
         const lista = data.results || data;
-        
-        // Pega no máximo 5 ou 10 para manter o layout bonito (opcional)
         setEventos(lista);
       } catch (error) {
         console.error("Erro:", error);
@@ -36,15 +31,13 @@ export default function EventGrid() {
   };
 
   const handleCardClick = (id) => {
-    navigate(`/evento/${id}`); // Redireciona para a página de detalhes que criamos
+    navigate(`/evento/${id}`);
   };
 
-  // Se não houver eventos destaque carregados ainda, pode retornar null ou um loading simples
-  if (eventos.length === 0) return null; 
+  if (eventos.length === 0) return null;
 
   return (
     <div className="container">
-      {/* Título estilizado (Mantido igual) */}
       <h2 className="event-title">
         <span>
           EVENTOS EM DESTAQUE
@@ -70,7 +63,7 @@ export default function EventGrid() {
               padding: "10px",
               transition: "transform 0.3s",
               cursor: "pointer",
-              backgroundColor: "#fff" // Garante fundo branco
+              backgroundColor: "#fff"
             }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.transform = "scale(1.05)")
@@ -84,7 +77,7 @@ export default function EventGrid() {
               alt={event.nome}
               style={{
                 width: "100%",
-                height: "150px", // Mantido o tamanho exato do seu exemplo
+                height: "250px", // altura maior
                 objectFit: "cover",
                 borderRadius: "5px",
               }}
@@ -100,7 +93,6 @@ export default function EventGrid() {
         ))}
       </div>
 
-      {/* Botão de navegação */}
       <div style={{ textAlign: "center", marginTop: "40px", marginBottom: "40px" }}>
         <button className="green" onClick={handleVejaMais}>
           Veja mais estilos
