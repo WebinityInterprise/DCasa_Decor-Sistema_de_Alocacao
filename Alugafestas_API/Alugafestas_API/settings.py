@@ -162,4 +162,12 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='990506002@smtp-brevo.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='OUT3bq1zcCJG7xQ9')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='990506002@smtp-brevo.com')
 
-WHATSAPP_NUMERO = config('WHATSAPP_NUMERO')
+# ==========================
+# WHATSAPP / WHAPI
+# ==========================
+
+WHAPI_BASE_URL = config('WHAPI_BASE_URL')
+WHAPI_TOKEN = config('WHAPI_TOKEN')
+
+# Número oficial da loja (opcional)
+WHATSAPP_NUMERO = config('WHATSAPP_NUMERO', default='')

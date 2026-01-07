@@ -35,6 +35,8 @@ class Pedido(models.Model):
         ("PAGO", "Pago"),
         ("SEPARANDO", "Separando"),
         ("PRONTO", "Pronto para retirada"),
+        ("EM_USO", "Em uso (Alugado)"),
+        ("DEVOLVIDO", "Devolvido"),
         ("CANCELADO", "Cancelado"),
         ("CONCLUIDO", "Concluído"),
     ]

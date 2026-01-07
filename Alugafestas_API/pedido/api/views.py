@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status,permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -12,6 +12,8 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Sum, F, Count, Q
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 # --- IMPORTANTE: ADICIONEI EVENTO E EVENTOITEM AQUI ---
 from produto.models import Produto, Kit, Evento
@@ -19,7 +21,8 @@ from pedido.models import Cliente, Pedido, ItemPedido, MovimentoEstoque
 from pedido.api.serializers import (
     PedidoSerializer,
     PedidoCreateSerializer,
-    PedidoStatusSerializer
+    PedidoStatusSerializer,
+    PedidoStatusUpdateSerializer 
 )
 
 def gerar_token_aleatorio(length=8):
@@ -269,3 +272,82 @@ class CarrinhoViewSet(viewsets.ViewSet):
         url = f"https://wa.me/{settings.WHATSAPP_NUMERO}?text={quote_plus(texto, encoding='utf-8')}"
 
         return Response({"whatsapp_url": url})
+    
+    
+@extend_schema(tags=['Admin - Pedidos'])
+class AdminPedidoViewSet(viewsets.ModelViewSet):
+    """
+    Área Administrativa para gestão de pedidos.
+    Apenas usuários com is_staff=True ou is_superuser=True podem acessar.
+    """
+    serializer_class = PedidoSerializer
+    permission_classes = [permissions.IsAuthenticated] # Bloqueia acesso público
+    http_method_names = ['get', 'patch', 'head', 'options'] # Admin geralmente só visualiza ou altera status
+
+    def get_serializer_class(self):
+        # Usa o serializer simplificado apenas quando for atualizar (PATCH)
+        if self.action == 'partial_update':
+            return PedidoStatusUpdateSerializer
+        return super().get_serializer_class()
+
+    def get_queryset(self):
+        # Otimização: Traz itens e cliente junto para não pesar o banco
+        queryset = Pedido.objects.all()\
+            .select_related('cliente')\
+            .prefetch_related('itens__produto')\
+            .order_by('-criado_em')
+
+        # --- Filtros ---
+        # 1. Filtro por Status
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            queryset = queryset.filter(status__iexact=status_param)
+
+        # 2. Busca por Nome do Cliente ou Código do Pedido (Token)
+        query = self.request.query_params.get('q')
+        if query:
+            queryset = queryset.filter(
+                Q(cliente__nome__icontains=query) | 
+                Q(token__icontains=query)
+            )
+
+        return queryset
+
+    @extend_schema(
+        summary="Dashboard de Vendas",
+        description="Retorna o total de pedidos e o valor total faturado (excluindo cancelados).",
+        responses={200: OpenApiExample(
+            name="Exemplo Dashboard",
+            value={"total_pedidos": 50, "valor_total_faturado": 15000.00}
+        )}
+    )
+    @action(detail=False, methods=['get'])
+    def dashboard(self, request):
+        # Base para cálculos (exclui pedidos cancelados para não falsificar o faturamento)
+        pedidos_validos = Pedido.objects.exclude(status='CANCELADO')
+
+        # 1. Contagem total de pedidos (incluindo pendentes, aprovados, etc)
+        total_count = Pedido.objects.count()
+
+        # 2. Soma do valor total
+        # Como o 'total' do pedido muitas vezes é calculado dinamicamente (property),
+        # calculamos a soma via Itens para garantir precisão no banco de dados.
+        soma_itens = ItemPedido.objects.filter(pedido__in=pedidos_validos).aggregate(
+            faturamento=Sum(F('quantidade_estoque') * F('preco_unitario'))
+        )['faturamento'] or 0.0
+
+        return Response({
+            "total_pedidos": total_count,
+            "valor_total_faturado": round(soma_itens, 2),
+            "info": "Valor calculado excluindo pedidos CANCELADOS."
+        })
+
+    @extend_schema(
+        summary="Listar Pedidos (Com Filtros)",
+        parameters=[
+            OpenApiParameter(name='status', description='Filtrar por status (PENDENTE, APROVADO, etc)', required=False, type=str),
+            OpenApiParameter(name='q', description='Buscar por Nome do Cliente ou Código do Pedido', required=False, type=str),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

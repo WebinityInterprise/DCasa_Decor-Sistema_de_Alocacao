@@ -5,11 +5,11 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from itertools import chain
-
+from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view, OpenApiExample
 # Importe seus models e serializers
 from produto.models import Categoria, Produto, Kit, Evento, EventoItem
 from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer, EventoSerializer, EventoItemSerializer
-
+from rest_framework.parsers import MultiPartParser, FormParser
 # --- Paginação Personalizada ---
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 28
@@ -17,6 +17,28 @@ class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 100
 
 # --- Categoria ---
+@extend_schema_view(
+    create=extend_schema(
+        summary="Criar Categoria (JSON)",
+        description="Cria uma categoria enviando a imagem como string Base64.",
+        examples=[
+            OpenApiExample(
+                name='Exemplo Categoria Base64',
+                summary='Cadastro via JSON Puro',
+                description='Exemplo enviando imagem codificada em Base64.',
+                value={
+                    "nome": "Casamento Clássico",
+                    "slug": "casamento-classico-2024",
+                    "descricao": "Itens sofisticados para casamentos tradicionais.",
+                    # String Base64 real (encurtada para exemplo)
+                    "imagem": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+                    "destaque": True
+                },
+                request_only=True
+            )
+        ]
+    )
+)
 @extend_schema(tags=['Categorias'])
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all().order_by('nome')
@@ -25,12 +47,45 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 # --- Produto e Busca Unificada ---
+@extend_schema_view(
+    create=extend_schema(
+        summary="Criar Produto (JSON Puro)",
+        description="Cria um produto enviando imagens (capa e carrossel) como Base64.",
+        examples=[
+            OpenApiExample(
+                name='Exemplo Produto Completo JSON',
+                summary='Produto com Múltiplas Imagens',
+                description='Exemplo enviando capa e uma lista de fotos extras via JSON.',
+                value={
+                    "nome": "Mesa Rústica de Madeira",
+                    "codigo": "MOV015",
+                    "categoria_id": 4,
+                    "descricao": "Mesa de madeira maciça para 8 lugares.",
+                    "preco": 150.00,
+                    "cor": "Madeira",
+                    "quantidade_estoque": 10,
+                    "destaque": True,
+                    "disponivel": True,
+                    # Imagem de Capa (Base64)
+                    "imagem": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQE...", 
+                    # Lista de Imagens Extras (Base64)
+                    "upload_imagens_carrossel": [
+                        "data:image/jpeg;base64,/9j/4AAQSkZJRgAB...",
+                        "data:image/png;base64,iVBORw0KGgoAAA..."
+                    ]
+                },
+                request_only=True
+            )
+        ]
+    )
+)
 @extend_schema(tags=['Produtos'])
 class ProdutoViewSet(viewsets.ModelViewSet):
     # Otimização: Carrega categoria e imagens junto para evitar N+1 queries
     queryset = Produto.objects.all().select_related('categoria').prefetch_related('imagens_carrossel').order_by('id')
     serializer_class = ProdutoSerializer
     pagination_class = StandardResultsSetPagination
+   
     # GET é público, alterações exigem login
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -136,9 +191,34 @@ class ProdutoViewSet(viewsets.ModelViewSet):
         })
 
 # --- Kit (View Normal) ---
+@extend_schema(
+    tags=['Kits'],
+    summary="Criar Kit (JSON Puro)",
+    description="Cria um kit enviando a imagem em Base64 e os itens como lista JSON.",
+    examples=[
+        OpenApiExample(
+            name='Exemplo JSON Puro',
+            value={
+                "nome": "Kit Festa Completa",
+                "codigo": "KIT099",
+                "categoria_id": 1,
+                "descricao": "Kit via JSON",
+                "preco": 150.00,
+                "destaque": True,
+                # Imagem reduzida para exemplo (envie a string completa do base64)
+                "imagem": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+                "itens_input": [
+                    {"produto_id": 1, "quantidade": 10},
+                    {"produto_id": 2, "quantidade": 5}
+                ]
+            },
+            request_only=True
+        )
+    ]
+)
 @extend_schema(tags=['Kits'])
 class KitViewSet(viewsets.ModelViewSet):
-    # Otimização essencial: busca itens e produtos aninhados para o Serializer não fazer N+1 queries
+    # Otimização: busca itens e produtos aninhados
     queryset = Kit.objects.select_related('categoria').prefetch_related(
         'itens__produto__imagens_carrossel',
         'itens__produto'
@@ -146,7 +226,8 @@ class KitViewSet(viewsets.ModelViewSet):
     
     serializer_class = KitSerializer
     pagination_class = StandardResultsSetPagination
-    # GET é público, alterações exigem login
+    
+    
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
@@ -155,8 +236,36 @@ class KitViewSet(viewsets.ModelViewSet):
         if destaque == 'true':
             queryset = queryset.filter(destaque=True)
         return queryset
-    
 
+@extend_schema_view(
+    create=extend_schema(
+        summary="Criar Evento (JSON Puro)",
+        description="Cria um evento completo com imagem (Base64) e lista de produtos.",
+        examples=[
+            OpenApiExample(
+                name='Exemplo Evento Completo',
+                summary='Cadastro via JSON',
+                description='Exemplo de cadastro de um Casamento com itens inclusos.',
+                value={
+                    "nome": "Casamento ao Ar Livre",
+                    "codigo": "EVT2024",
+                    "tipo": "casamento", # Deve corresponder ao CHOICE do model (ex: casamento, aniversario)
+                    "descricao": "Pacote completo para cerimônia no jardim.",
+                    "capacidade_pessoas": 150,
+                    "destaque": True,
+                    "preco": 5000.00, # Se for calculado automaticamente, pode omitir ou enviar 0
+                    # Imagem Base64 (exemplo encurtado)
+                    "imagem": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+                    "itens_input": [
+                        {"produto_id": 10, "quantidade": 150}, # Ex: 150 Cadeiras
+                        {"produto_id": 22, "quantidade": 15}   # Ex: 15 Mesas
+                    ]
+                },
+                request_only=True
+            )
+        ]
+    )
+)
 @extend_schema(tags=['Eventos'])
 class EventoViewSet(viewsets.ModelViewSet):
     queryset = Evento.objects.prefetch_related('itens_evento__produto__imagens_carrossel', 'itens_evento__produto').order_by('-id')

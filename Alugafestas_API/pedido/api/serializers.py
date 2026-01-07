@@ -146,3 +146,21 @@ class PedidoSerializer(serializers.ModelSerializer):
             'tipo_entrega', 'data_retirada', 'data_devolucao', 
             'data_evento', 'hora_evento'
         ]
+
+class PedidoStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pedido
+        fields = ['status']
+        
+    def validate_status(self, value):
+        value = value.upper()
+        
+        # Pega as chaves definidas no Model (PENDENTE, PAGO, EM_USO, etc)
+        # Assim fica sempre sincronizado
+        status_validos = [opcao[0] for opcao in Pedido.STATUS]
+        
+        if value not in status_validos:
+            raise serializers.ValidationError(
+                f"Status inválido. As opções permitidas são: {', '.join(status_validos)}"
+            )
+        return value
