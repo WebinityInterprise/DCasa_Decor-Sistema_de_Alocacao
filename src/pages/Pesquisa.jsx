@@ -79,7 +79,7 @@ export default function Pesquisa() {
     const nomeCategoria = item.categoria?.nome?.toLowerCase() || "";
     const nomeProduto = item.nome?.toLowerCase() || "";
     const isKit = nomeCategoria.includes("kit") || nomeProduto.includes("kit");
-    navigate(isKit ? `/KitDetalhes/${item.id}` : `/produto/${item.id}`);
+    navigate(isKit ? `/KitDetalhes/${item.id}` : `/produtoDetalhes/${item.id}`);
   };
 
   const limparFiltros = () => {

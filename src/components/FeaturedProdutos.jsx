@@ -31,11 +31,11 @@ export default function FeaturedProdutos() {
   }, [apiUrl]);
 
   const handleOpenDetails = (id) => {
-    navigate(`/ProdutoDetalhes/${id}`);
+    navigate(`/produtoDetalhes/${id}`);
   };
 
   const handleSeeMoreClick = () => {
-    navigate("/Produtos");
+    navigate("/produto");
   };
 
   if (loading) {

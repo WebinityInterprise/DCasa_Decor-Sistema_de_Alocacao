@@ -8,35 +8,42 @@ export default function CarouselHome() {
   const [loading, setLoading] = useState(true);
   const apiUrl = import.meta.env.VITE_API_URL;
 
+  // Imagens locais de reserva (caso a API falhe ou a lista venha vazia)
+  const fallbackImages = [
+    { url: "/images/carousel1.jpg", nomeEvento: "Bem-vindo" },
+    { url: "/images/carousel2.jpg", nomeEvento: "Confira nossas ofertas" },
+    { url: "/images/carousel3.jpg", nomeEvento: "Faça seu evento" },
+  ];
+
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const response = await fetch(`${apiUrl}/produto/kits/?destaque=true`);
+        // 1. Aponta para o novo endpoint de banners
+        const response = await fetch(`${apiUrl}/produto/banners/`);
+        
+        if (!response.ok) {
+           throw new Error("Falha ao buscar banners");
+        }
+
         const data = await response.json();
 
-        const apiImages = data
-          .filter((kit) => kit.imagem)
-          .map((kit) => ({
-            url: kit.imagem,
-            nomeEvento: kit.nomeEvento || kit.nome || "",
-          }));
+        // 2. Verifica se é um array e tem itens
+        if (Array.isArray(data) && data.length > 0) {
+          const apiImages = data
+            .filter((banner) => banner.imagem) // Garante que tem URL da imagem
+            .map((banner) => ({
+              url: banner.imagem,      // Mapeia o campo 'imagem' da API
+              nomeEvento: banner.titulo || "" // Mapeia o campo 'titulo' da API
+            }));
 
-        if (apiImages.length === 0) {
-          setImages([
-            { url: "/images/carousel1.jpg", nomeEvento: "Evento 1" },
-            { url: "/images/carousel2.jpg", nomeEvento: "Evento 2" },
-            { url: "/images/carousel3.jpg", nomeEvento: "Evento 3" },
-          ]);
-        } else {
           setImages(apiImages);
+        } else {
+          // Se a lista vier vazia [], usa o fallback
+          setImages(fallbackImages);
         }
       } catch (error) {
-        console.error("Erro ao carregar banners:", error);
-        setImages([
-          { url: "/images/carousel1.jpg", nomeEvento: "Evento 1" },
-          { url: "/images/carousel2.jpg", nomeEvento: "Evento 2" },
-          { url: "/images/carousel3.jpg", nomeEvento: "Evento 3" },
-        ]);
+        console.error("Erro ao carregar banners, usando locais:", error);
+        setImages(fallbackImages);
       } finally {
         setLoading(false);
       }
@@ -54,7 +61,7 @@ export default function CarouselHome() {
     autoplay: true,
     autoplaySpeed: 3000,
     centerMode: true,
-    centerPadding: "40px", // reduzido para slides mais largos
+    centerPadding: "40px",
     responsive: [
       {
         breakpoint: 1024,
@@ -87,15 +94,15 @@ export default function CarouselHome() {
     );
   }
 
+  // Se não houver imagens nem na API nem no fallback, não renderiza nada
   if (images.length === 0) return null;
 
   return (
     <>
-      {/* CSS para slides mais largos */}
       <style>
         {`
           .slick-slide > div {
-            padding: 0 10px; /* menos padding para slides mais largos */
+            padding: 0 10px;
             box-sizing: border-box;
           }
 
@@ -108,12 +115,7 @@ export default function CarouselHome() {
       </style>
 
       <div style={{ margin: "20px 0" }}>
-        <div
-          style={{
-            width: "95%", // aumenta largura do container
-            margin: "0 auto",
-          }}
-        >
+        <div style={{ width: "95%", margin: "0 auto" }}>
           <Slider {...settings}>
             {images.map((imgObj, idx) => (
               <div key={idx}>
@@ -130,7 +132,7 @@ export default function CarouselHome() {
                 >
                   <img
                     src={imgObj.url}
-                    alt={`Banner Destaque ${idx}`}
+                    alt={imgObj.nomeEvento || `Banner ${idx}`}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -141,13 +143,15 @@ export default function CarouselHome() {
                     <div
                       style={{
                         position: "absolute",
-                        bottom: "10px",
-                        left: "10px",
+                        bottom: "20px",
+                        left: "20px",
                         color: "white",
-                        padding: "5px 10px",
+                        backgroundColor: "rgba(0,0,0,0.4)", // Fundo semi-transparente para leitura
+                        padding: "5px 15px",
                         borderRadius: "4px",
-                        fontSize: "36px",
+                        fontSize: "24px", // Ajustei um pouco o tamanho
                         fontWeight: "bold",
+                        textShadow: "1px 1px 2px black"
                       }}
                     >
                       {imgObj.nomeEvento}
