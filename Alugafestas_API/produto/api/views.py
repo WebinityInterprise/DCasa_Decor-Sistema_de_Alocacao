@@ -8,7 +8,7 @@ from itertools import chain
 from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view, OpenApiExample
 # Importe seus models e serializers
 from produto.models import Categoria, Produto, Kit, Evento, EventoItem
-from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer, EventoSerializer, EventoItemSerializer
+from .serializers import CategoriaSerializer, ProdutoSerializer, KitSerializer, EventoSerializer, EventoItemSerializer, BannerSerializer, Banner
 from rest_framework.parsers import MultiPartParser, FormParser
 # --- Paginação Personalizada ---
 class StandardResultsSetPagination(PageNumberPagination):
@@ -281,3 +281,39 @@ class EventoViewSet(viewsets.ModelViewSet):
         if tipo := self.request.query_params.get('tipo'):
             qs = qs.filter(tipo__iexact=tipo)
         return qs
+    
+    
+# --- Banners (Carrossel) ---
+@extend_schema_view(
+    create=extend_schema(
+        summary="Criar Banner (JSON)",
+        description="Cria um banner para o carrossel enviando a imagem como string Base64.",
+        examples=[
+            OpenApiExample(
+                name='Exemplo Banner Base64',
+                summary='Cadastro de Banner',
+                description='Banner para a página inicial.',
+                value={
+                    "titulo": "Promoção de Primavera",
+                    "ativo": True,
+                    "ordem": 1,
+                    # String Base64 encurtada
+                    "imagem": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD..."
+                },
+                request_only=True
+            )
+        ]
+    )
+)
+@extend_schema(tags=['Banners'])
+class BannerViewSet(viewsets.ModelViewSet):
+    # Filtra apenas os ativos e ordena pela ordem definida
+    queryset = Banner.objects.filter(ativo=True).order_by('ordem')
+    serializer_class = BannerSerializer
+    
+    # IMPORTANTE: GET é público (AllowAny implícito no ReadOnly), 
+    # mas POST/PUT/DELETE exige token (IsAuthenticated).
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    # Para o carrossel, removemos a paginação para vir uma lista direta [{}, {}]
+    pagination_class = None

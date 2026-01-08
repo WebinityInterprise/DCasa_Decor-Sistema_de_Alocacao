@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Categoria, Produto, ImagemProduto, Kit, KitItem, Evento, EventoItem
+from .models import Categoria, Produto, ImagemProduto, Kit, KitItem, Evento, EventoItem, Banner
 
 # --- INLINES (Itens dentro de outros modelos) ---
 
@@ -55,9 +55,14 @@ class EventoAdmin(admin.ModelAdmin):
             evento.atualizar_preco_total() # Certifique-se que o método existe no model Evento
         self.message_user(request, f"Preços de {queryset.count()} eventos recalculados!")
     recalcular_precos.short_description = "Recalcular preço (Soma dos Itens)"
-
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'ativo', 'ordem')
+    list_editable = ('ativo', 'ordem')
 # --- REGISTROS NO SITE ---
+
 admin.site.register(Categoria)
 admin.site.register(Produto, ProdutoAdmin)
 admin.site.register(Kit, KitAdmin)
 admin.site.register(Evento, EventoAdmin) 
+

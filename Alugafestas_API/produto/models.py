@@ -179,3 +179,14 @@ class EventoItem(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.evento.atualizar_preco_total()
+class Banner(models.Model):
+    titulo = models.CharField(max_length=100, blank=True, null=True)
+    imagem = models.ImageField(upload_to='banners/')
+    ativo = models.BooleanField(default=True) # Para você ligar/desligar sem deletar
+    ordem = models.IntegerField(default=0) # Para controlar qual aparece primeiro
+
+    class Meta:
+        ordering = ['ordem']
+
+    def __str__(self):
+        return self.titulo or "Banner sem título"

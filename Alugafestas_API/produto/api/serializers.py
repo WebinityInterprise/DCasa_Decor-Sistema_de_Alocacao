@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from produto.models import Categoria, Produto, Kit, ImagemProduto, KitItem, Evento, EventoItem
+from produto.models import Categoria, Produto, Kit, ImagemProduto, KitItem, Evento, EventoItem, Banner
 from django.db import transaction
 
 # --- Serializer para as imagens extras ---
@@ -170,3 +170,8 @@ class EventoSerializer(serializers.ModelSerializer):
             'imagem', 'destaque', 'capacidade_pessoas', 
             'preco', 'preco_formatado', 'itens_evento'
         ]
+        
+class BannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banner
+        fields = ['id', 'titulo', 'imagem']
