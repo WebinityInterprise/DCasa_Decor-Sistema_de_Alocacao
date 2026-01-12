@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
-from decouple import config  # precisa instalar: pip install python-decouple
+from decouple import config
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +25,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_spectacular',
     'drf_spectacular_sidecar',
-    'storages',
+    'storages',  # Necessário para o R2/S3
     'contas',
     'produto',
     'pedido',
@@ -65,7 +66,6 @@ WSGI_APPLICATION = 'Alugafestas_API.wsgi.application'
 DB_ENGINE = config('DB_ENGINE', default='django.db.backends.sqlite3')
 
 if DB_ENGINE == 'django.db.backends.sqlite3':
-    # SQLite - desenvolvimento
     DATABASES = {
         'default': {
             'ENGINE': DB_ENGINE,
@@ -73,7 +73,6 @@ if DB_ENGINE == 'django.db.backends.sqlite3':
         }
     }
 else:
-    # Outros bancos - produção
     DATABASES = {
         'default': {
             'ENGINE': DB_ENGINE,
@@ -106,6 +105,7 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
 # JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('ACCESS_TOKEN_LIFETIME', default=60, cast=int)),
@@ -123,34 +123,71 @@ LANGUAGE_CODE = config('LANGUAGE_CODE', default='pt-br')
 TIME_ZONE = config('TIME_ZONE', default='America/Sao_Paulo')
 USE_I18N = True
 USE_TZ = True
+
+# Static files (Locais com Whitenoise)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# ==========================================
+# CONFIGURAÇÃO CLOUDFLARE R2 via STORAGES
+# ==========================================
 USE_S3 = config("USE_S3", default=False, cast=bool)
 
 if USE_S3:
+    # --- Configurações Básicas R2 ---
     AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = config("AWS_BUCKET_NAME")
-
-    AWS_S3_ENDPOINT_URL = "https://gateway.storjshare.io"
-    AWS_S3_REGION_NAME = "us-east-1"
+    AWS_STORAGE_BUCKET_NAME = config("AWS_BUCKET_NAME", default="gerson-deploy")
+    
+    # ID da Conta Cloudflare (para montar a URL do Endpoint)
+    CLOUDFLARE_ACCOUNT_ID = "5d3624360963ea3286398618fc93c642"
+    AWS_S3_ENDPOINT_URL = f"https://{CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    
+    AWS_S3_REGION_NAME = "auto"
     AWS_S3_SIGNATURE_VERSION = "s3v4"
+    
+    # Organização interna no Bucket
+    AWS_LOCATION = "media"
+    
+    # Se você tiver um domínio customizado no Cloudflare, descomente e use aqui:
+    # AWS_S3_CUSTOM_DOMAIN = "media.seudominio.com"
+    
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "access_key": AWS_ACCESS_KEY_ID,
+                "secret_key": AWS_SECRET_ACCESS_KEY,
+                "bucket_name": AWS_STORAGE_BUCKET_NAME,
+                "region_name": AWS_S3_REGION_NAME,
+                "endpoint_url": AWS_S3_ENDPOINT_URL,
+                "location": AWS_LOCATION,
+                "file_overwrite": False,
+                "signature_version": AWS_S3_SIGNATURE_VERSION,
+                # "custom_domain": config("AWS_S3_CUSTOM_DOMAIN", default=None),
+            },
+        },
+        "staticfiles": {
+            # Mantém arquivos estáticos (CSS/JS) no servidor local otimizado pelo Whitenoise
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Configuração Local (Desenvolvimento ou sem S3)
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
-    AWS_DEFAULT_ACL = None
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_QUERYSTRING_AUTH = False
-
-    # ESSENCIAL PARA O STORJ FUNCIONAR
-    AWS_S3_ADDRESSING_STYLE = "path"
-
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-    MEDIA_URL = f"https://gateway.storjshare.io/{AWS_STORAGE_BUCKET_NAME}/"
-
-
-
+# CORREÇÃO AQUI (Aspas simples normais)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -165,9 +202,6 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='990506002@smtp-brevo.
 # ==========================
 # WHATSAPP / WHAPI
 # ==========================
-
-WHAPI_BASE_URL = config('WHAPI_BASE_URL')
-WHAPI_TOKEN = config('WHAPI_TOKEN')
-
-# Número oficial da loja (opcional)
+WHAPI_BASE_URL = config('WHAPI_BASE_URL', default='')
+WHAPI_TOKEN = config('WHAPI_TOKEN', default='')
 WHATSAPP_NUMERO = config('WHATSAPP_NUMERO', default='')

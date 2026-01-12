@@ -1,0 +1,28 @@
+# --- Segurança (CRÍTICO) ---
+.env
+.env.*
+secrets.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Django ---
+*.log
+
+
+# --- Ambiente Virtual (Seu myenv) ---
+myenv/
+venv/
+env/
+.venv/
+
+
+# Ignora arquivos estáticos coletados (usado apenas no servidor)
+
+# --- IDEs e Sistema Operacional ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
